@@ -1,6 +1,6 @@
 package org.CyfrSheets.ScheduleSheets.models.utilities;
 
-import org.CyfrSheets.ScheduleSheets.models.Participant;
+import org.CyfrSheets.ScheduleSheets.models.users.Participant;
 import org.CyfrSheets.ScheduleSheets.models.exceptions.BadTimeSlotException;
 import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidDateTimeArrayException;
 

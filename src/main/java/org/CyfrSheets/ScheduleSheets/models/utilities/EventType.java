@@ -1,4 +1,4 @@
-package org.CyfrSheets.ScheduleSheets.models;
+package org.CyfrSheets.ScheduleSheets.models.utilities;
 
 public enum EventType {
     SOS ("Start Time Only, Static", false, true, true),

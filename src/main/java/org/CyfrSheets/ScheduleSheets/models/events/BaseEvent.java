@@ -1,9 +1,12 @@
-package org.CyfrSheets.ScheduleSheets.models;
+package org.CyfrSheets.ScheduleSheets.models.events;
 
+import org.CyfrSheets.ScheduleSheets.models.utilities.EventTime;
+import org.CyfrSheets.ScheduleSheets.models.users.Participant;
+import org.CyfrSheets.ScheduleSheets.models.users.TempUser;
 import org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage;
+import org.CyfrSheets.ScheduleSheets.models.utilities.EventType;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotNull;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -14,7 +17,7 @@ import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.noErro
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.yesError;
 
 @Entity
-abstract class BaseEvent {
+public abstract class BaseEvent {
 
     @Id
     @GeneratedValue
@@ -40,6 +43,11 @@ abstract class BaseEvent {
     // All participants
     @ManyToMany
     private List<Participant> participants;
+
+    // TempUsers
+    @OneToMany
+    @JoinColumn(name = "baseevent_id")
+    private List<TempUser> tempUsers;
 
     // Junk/Error Detection byte for troubleshooting
     private byte[] badByte = {-1, -1, -1};

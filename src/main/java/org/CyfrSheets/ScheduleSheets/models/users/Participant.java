@@ -1,5 +1,6 @@
-package org.CyfrSheets.ScheduleSheets.models;
+package org.CyfrSheets.ScheduleSheets.models.users;
 
+import org.CyfrSheets.ScheduleSheets.models.events.BaseEvent;
 import org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage;
 
 import javax.persistence.Entity;
@@ -16,7 +17,7 @@ import java.util.List;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 
 @Entity
-public class Participant {
+public abstract class Participant {
 
     @Id
     @GeneratedValue
@@ -42,18 +43,27 @@ public class Participant {
     private byte[] salt = null;
 
     // Methods
-    public Participant() { }
+    protected Participant(String name, String pass) {
+        ErrorPackage ep;
+        if (!pass.equals("")) ep = securePassword(pass);
 
-    public boolean registered() { return isUser; }
+    }
+
+    protected Participant() { }
+
+    // Registered user?
+    abstract public boolean registered();
 
     // Check ID without returning ID.
-    // TODO - Phase out getID for this if possible
     public boolean checkID(int id) { return this.id == id; }
 
     public String getName() { return name; }
-    public int getID() { return id; }
+    public int getID() { return id; } // TODO - Make protected if it won't break things
 
-    // Comparator
+    // Comparator abstract: Body to be split between TempUser and RegUser below
+    abstract public boolean equals(Participant p);
+
+    /**
     public boolean equals(Participant p) {
         if (p.isUser != this.isUser) return false;
         if (!p.name.equals(this.name)) return false;
@@ -67,7 +77,7 @@ public class Participant {
             } else if (p.secPass != null || p.salt != null) return false;
         }
         return true;
-    }
+    } */
 
     // Encrypt given password to check if it hashes into the object hash
     public ErrorPackage checkPassword(String pass) {
@@ -80,23 +90,27 @@ public class Participant {
         }
     }
 
+    // TODO - Move method below to RegUser - unnecessary for TempUser
     // Attempt to change password. Returns whether or not it succeeded, and what caused it to fail if so
     public ErrorPackage attemptChangePass(String pass, String newPass) {
         // Check current password for match first
         ErrorPackage eP = checkPassword(pass);
         // Check for errors and successful pass match
-        if (!eP.hasError() && eP.getAncil()) return changePassword(newPass);
-        if (!eP.hasError() && !eP.getAncil()) eP.setMessage("Passwords Do Not Match!");
+        if (!eP.hasError() && (Boolean)eP.getAux("ancil")) return changePassword(newPass);
+        if (!eP.hasError() && !(Boolean)eP.getAux("ancil")) eP.setMessage("Passwords Do Not Match!");
         return eP;
     }
 
+    // TODO - Move method below to RegUser - unnecessary for TempUser
     // Private change password interface - Separate more as a failsafe than anything, in case anything must be changed
     private ErrorPackage changePassword(String pass) {
         return securePassword(pass);
     }
 
+    protected void setName(String name) { this.name = name; }
+
     // Setting password first time, changing it in future. Makes changePassword redundant for now
-    private ErrorPackage securePassword(String pass) {
+    protected ErrorPackage securePassword(String pass) {
         if ( pass == null ) return yesError("No string handed to securePass");
         ErrorPackage saltEP = shakeSalt();
         if (saltEP.hasError()) return saltEP;
@@ -112,7 +126,7 @@ public class Participant {
     }
 
     // Check password hash vs given hash. Do not allow anything public facing to use this within three degrees of directly
-    private boolean isHash(byte[] hash) {
+    protected boolean isHash(byte[] hash) {
         if (secPass.length != hash.length) { return false; }
         for (int i = 0; i < hash.length; i++) {
             if (secPass[i] != hash[i]) {
@@ -123,7 +137,7 @@ public class Participant {
     }
 
     // Get a new salt and save it. Called every time a password is made or changed
-    private ErrorPackage shakeSalt() {
+    protected ErrorPackage shakeSalt() {
         try {
             SecureRandom sR = SecureRandom.getInstance("SHA1PRNG");
             sR.nextBytes(salt);

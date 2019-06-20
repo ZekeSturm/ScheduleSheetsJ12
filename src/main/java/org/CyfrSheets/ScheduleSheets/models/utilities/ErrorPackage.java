@@ -2,13 +2,21 @@ package org.CyfrSheets.ScheduleSheets.models.utilities;
 
 import java.util.HashMap;
 
+import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassCase.*;
+import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassChecker.checkClass;
+
 public class ErrorPackage {
 
     // Data stored w/ name string keys
     private HashMap<String, Object> dataMap;
 
+    // Consider expanding ClassCase/Checker and implementing a hashmap using the same keys as the dataMap to store the data types
+
     // Auxiliary/Overflow message counter
     int auxMsgNum = 0;
+
+    // Use same as above but for additional error messages
+    int auxErrNum = 0;
 
     public ErrorPackage(String message, boolean error) {
         // Initialize dataMap
@@ -23,7 +31,7 @@ public class ErrorPackage {
     public ErrorPackage() { this("No Error!", false); }
 
     public String getMessage() {
-        if (dataMap.containsKey("message")) return (String)dataMap.get("message");
+        if (dataMap.containsKey("message") && checkClass(dataMap.get("message")) == STRING) return (String)dataMap.get("message");
         else return "No message found! How'd you do that?";
     }
 
@@ -40,14 +48,14 @@ public class ErrorPackage {
     }
 
     public boolean hasError() {
-        if (dataMap.containsKey("error")) {
+        if (dataMap.containsKey("error") && checkClass(dataMap.get("error")) == BOOLEAN)
             return (Boolean)dataMap.get("error");
-        }
         return false;
     }
 
     public String getAuxMsg(int auxNum) {
-        if (dataMap.containsKey("auxMsg" + auxNum)) return (String)dataMap.get("auxMsg" + auxNum);
+        if (dataMap.containsKey("auxMsg" + auxNum) && checkClass(dataMap.get("auxMsg" + auxNum)) == STRING)
+            return (String)dataMap.get("auxMsg" + auxNum);
         return "Could not find this auxiliary message!";
     }
 
@@ -73,14 +81,22 @@ public class ErrorPackage {
     }
 
     // Simple static methods for cleaner execution/less handling via constructor
-    public static ErrorPackage noError(boolean ancil) {
-        ErrorPackage out = new ErrorPackage("No Error!", false);
+    public static ErrorPackage noError(String msg, boolean ancil) {
+        ErrorPackage out = new ErrorPackage(msg, false);
         out.addAux("ancil", ancil);
         return out;
     }
 
-    public static ErrorPackage noError(String msg, boolean ancil) {
-        ErrorPackage out = new ErrorPackage(msg, false);
+    public static ErrorPackage noError(boolean ancil) {
+        ErrorPackage out = noError();
+        out.addAux("ancil", ancil);
+        return out;
+    }
+
+    public static ErrorPackage noError() { return new ErrorPackage("No Error!", false); }
+
+    public static ErrorPackage yesError(String msg, String ancil) {
+        ErrorPackage out = yesError(msg);
         out.addAux("ancil", ancil);
         return out;
     }
