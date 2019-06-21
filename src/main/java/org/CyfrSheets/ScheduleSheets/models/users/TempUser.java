@@ -13,10 +13,10 @@ public class TempUser extends Participant {
     private final BaseEvent parent;
 
     // Methods
-    protected TempUser(String name, String pass, BaseEvent parent) {
+    public TempUser(String name, String pass, BaseEvent parent) {
         ErrorPackage ep;
         if (!pass.equals("")) ep = securePassword(pass);
-        setName(name);
+        setUsername(name);
         this.parent = parent;
     }
 
@@ -29,7 +29,7 @@ public class TempUser extends Participant {
     public boolean equals(Participant p) {
         if (p.registered()) return false;
         if (!checkID(p.getID())) return false;
-        if (!this.getName().equals(p.getName())) return false;
+        if (!this.getUsername().equals(p.getUsername())) return false;
         return true;
     }
 

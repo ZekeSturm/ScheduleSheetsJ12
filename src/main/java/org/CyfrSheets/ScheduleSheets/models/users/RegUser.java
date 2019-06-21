@@ -7,6 +7,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.validation.constraints.NotNull;
 
+import java.util.ArrayList;
+
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 
 public class RegUser extends Participant {
@@ -18,12 +20,16 @@ public class RegUser extends Participant {
     @NotNull
     private String emailAddr;
 
+    // List of salts for keys for created events & array initializer bool
+    private ArrayList<byte[]> cSaltList;
+    private boolean cSLYN = false;
+
     // Methods
     protected RegUser(String name, String pass, String emailAddr) throws InvalidPasswordException {
         ErrorPackage ep = new ErrorPackage();
         if (pass.isEmpty() || pass.isBlank()) ep = yesError("Empty password in RegUser constructor");
         if (ep.hasError()) throw new InvalidPasswordException("RegUser Constructor Missing Password");
-        setName(name);
+        setUsername(name);
         this.emailAddr = emailAddr;
         securePassword(pass);
     }
@@ -45,4 +51,25 @@ public class RegUser extends Participant {
     public int getUID() { return uID; }
 
     public boolean checkUID(int uID) { return this.uID == uID; }
+
+    public void passTheSalt(byte[] salt) {
+        cSaltListInit();
+        cSaltList.add(salt);
+    }
+
+    public ErrorPackage giveTheShaker() {
+        if (cSLYN) {
+            ErrorPackage out = noError();
+            out.addAux("shaker", cSaltList);
+            return out;
+        } else {
+            return yesError("No creator salts found");
+        }
+    }
+
+    private void cSaltListInit() {
+        if (cSLYN) return;
+        cSLYN = true;
+        cSaltList = new ArrayList<>();
+    }
 }

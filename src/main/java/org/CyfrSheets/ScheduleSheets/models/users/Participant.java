@@ -32,7 +32,7 @@ public abstract class Participant {
 
     @NotNull
     @Size(min = 3, max = 20)
-    private String name;
+    private String username;
 
     @ManyToMany(mappedBy = "participants")
     private List<BaseEvent> events;
@@ -43,12 +43,6 @@ public abstract class Participant {
     private byte[] salt = null;
 
     // Methods
-    protected Participant(String name, String pass) {
-        ErrorPackage ep;
-        if (!pass.equals("")) ep = securePassword(pass);
-
-    }
-
     protected Participant() { }
 
     // Registered user?
@@ -57,7 +51,7 @@ public abstract class Participant {
     // Check ID without returning ID.
     public boolean checkID(int id) { return this.id == id; }
 
-    public String getName() { return name; }
+    public String getUsername() { return username; }
     public int getID() { return id; } // TODO - Make protected if it won't break things
 
     // Comparator abstract: Body to be split between TempUser and RegUser below
@@ -66,14 +60,14 @@ public abstract class Participant {
     /**
     public boolean equals(Participant p) {
         if (p.isUser != this.isUser) return false;
-        if (!p.name.equals(this.name)) return false;
+        if (!p.username.equals(this.username)) return false;
         if (isUser) {
             // TODO - Check email & hashes w/ User-specific submethod.
         } else {
             // If hashes are present, check them
             if (secPass != null && salt != null) {
                 if (p.secPass == null || p.salt == null) return false;
-                if (!isHash(p.secPass)) return false;
+                if (!isPass(p.secPass)) return false;
             } else if (p.secPass != null || p.salt != null) return false;
         }
         return true;
@@ -84,7 +78,7 @@ public abstract class Participant {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(salt);
-            return noError(isHash(md.digest(pass.getBytes())));
+            return noError(isPass(md.digest(pass.getBytes())));
         } catch (NoSuchAlgorithmException e) {
             return yesError("No Such Algorithm Ex - checkPassword");
         }
@@ -107,7 +101,7 @@ public abstract class Participant {
         return securePassword(pass);
     }
 
-    protected void setName(String name) { this.name = name; }
+    protected void setUsername(String username) { this.username = username; }
 
     // Setting password first time, changing it in future. Makes changePassword redundant for now
     protected ErrorPackage securePassword(String pass) {
@@ -126,7 +120,7 @@ public abstract class Participant {
     }
 
     // Check password hash vs given hash. Do not allow anything public facing to use this within three degrees of directly
-    protected boolean isHash(byte[] hash) {
+    protected boolean isPass(byte[] hash) {
         if (secPass.length != hash.length) { return false; }
         for (int i = 0; i < hash.length; i++) {
             if (secPass[i] != hash[i]) {
