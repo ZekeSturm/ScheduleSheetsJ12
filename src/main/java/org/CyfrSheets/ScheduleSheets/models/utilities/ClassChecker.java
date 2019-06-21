@@ -20,6 +20,8 @@ public class ClassChecker {
                 return REGUSER;
             case "tempuser":
                 return TEMPUSER;
+            case "errorpackage":
+                return ERRORPACKAGE;
 
             default:
                 return UNKNOWN;

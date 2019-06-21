@@ -40,7 +40,8 @@ public class ErrorPackage {
             if (!(Boolean)dataMap.get("error")) {
                 auxMsgNum += 1;
                 dataMap.put("auxMsg" + auxMsgNum, msg);
-                return "Error message already present! Message saved as Aux " + auxMsgNum + "and can be retrieved with getAuxMsg(" + auxMsgNum +")";
+                return "Error message already present! Message saved as Aux " + auxMsgNum +
+                        "and can be retrieved with getAuxMsg(" + auxMsgNum +")";
             }
         }
         dataMap.put("message", msg);
@@ -72,6 +73,19 @@ public class ErrorPackage {
         return true;
     }
 
+    // Retrieval w/ type enforcement via ClassCase
+    public Object getAux(String key, ClassCase cc) {
+        String chKey = key.toLowerCase();
+        if (chKey.substring(0, 5).equals("auxmsg") || chKey.equals("message") || chKey.equals("error")) return "These values are not retrievable via this method";
+        if (dataMap.containsKey(key)) {
+            Object out = dataMap.get(key);
+            if (checkClass(out) == cc) return out;
+            return yesError("This auxiliary is not of the given type");
+        }
+        return "This auxiliary key was not found";
+    }
+
+    // Retrieval
     public Object getAux(String key) {
         // see addAux for notes
         String chKey = key.toLowerCase();

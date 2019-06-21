@@ -8,6 +8,8 @@ public enum ClassCase {
     INTEGER ("int"),
     REGUSER ("regu"),
     TEMPUSER ("temu"),
+    ERRORPACKAGE("erpk"),
+    
     UNKNOWN ("uknw");
 
     private String indicator;

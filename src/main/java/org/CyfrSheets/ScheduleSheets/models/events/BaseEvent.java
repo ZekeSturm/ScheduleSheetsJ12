@@ -29,7 +29,7 @@ public abstract class BaseEvent {
 
     protected byte[] creatorKey;
 
-    // Obfuscate creator salt
+    // Obfuscate creator salt if TempUser
     private ArrayList<byte[]> possibleCreatorSalts = new ArrayList<>();
 
     @OneToOne
