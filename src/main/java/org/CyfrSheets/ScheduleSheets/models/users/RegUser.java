@@ -6,7 +6,6 @@ import org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
-import javax.persistence.Id;
 import javax.validation.constraints.NotNull;
 
 import java.util.ArrayList;
@@ -16,10 +15,7 @@ import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 @Entity
 public class RegUser extends Participant {
 
-    @Id
-    @GeneratedValue(
-            strategy = GenerationType.IDENTITY
-    )
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int uID;
 
     @NotNull
@@ -52,9 +48,9 @@ public class RegUser extends Participant {
 
     public String getEmail() { return emailAddr; }
 
-    public int getID() { return uID; }
+    public int getUID() { return uID; }
 
-    public boolean checkID(Participant p) {
+    public boolean checkUID(Participant p) {
         if (!p.registered()) return false;
         return p.getID() == uID;
     }

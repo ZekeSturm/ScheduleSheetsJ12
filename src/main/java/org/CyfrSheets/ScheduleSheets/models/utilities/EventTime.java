@@ -1,22 +1,15 @@
 package org.CyfrSheets.ScheduleSheets.models.utilities;
 
-import org.CyfrSheets.ScheduleSheets.models.events.BaseEvent;
-
 import javax.persistence.*;
 import java.util.Calendar;
 
-@Entity
-public class EventTime {
+import static java.util.Calendar.*;
 
-    @Id
-    int id;
+@Embeddable
+public class EventTime {
 
     Calendar startTime;
     Calendar endTime;
-
-    @OneToOne(mappedBy = "time")
-    @MapsId
-    BaseEvent parentEvent;
 
     // Store user times here for planning events
 
@@ -33,14 +26,18 @@ public class EventTime {
         hasEndTime = false;
     }
 
+    public EventTime() { }
+
     public boolean hasEnd() { return hasEndTime; }
 
     public boolean multiDay() {
-        // TODO - return if startTime day and endTime day are not equal
+        if (hasEnd()) {
+            if (startTime.get(YEAR) == endTime.get(YEAR))
+                if (startTime.get(MONTH) == endTime.get(MONTH))
+                    if (startTime.get(DATE) == endTime.get(DATE))
+                        return false;
 
-        // Error stifling - remove when done
-        return true;
+            return true;
+        } else return false;
     }
-
-    public void setParent(BaseEvent parent) { parentEvent = parent; }
 }

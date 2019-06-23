@@ -11,28 +11,26 @@
     <p th:unless="${events} and ${events.size()}">No Events :c</p>
 
     <ul>
-        <li th:each="event : ${events}" th:text="${event.name}"></li>
+        <li th:each="event : ${events}" th:text="${event.eventName}"></li>
     </ul>
 
     <p th:unless="${statevents} and ${statevents.size()}">No Static Events :c</p>
 
     <ul>
-        <li th:each="event : ${statevents}" th:text="${event.name}"></li>
+        <li th:each="event : ${statevents}" th:text="${event.eventName}"></li>
     </ul>
 
     <p th:unless="${participants} and ${participants.size()}">No Participants :c</p>
 
     <ul>
-        <li th:each="user : ${participants}" th:text="${user.name}"></li>
+        <li th:each="user : ${participants}" th:text="${user.username}"></li>
     </ul>
 
     <p th:unless="${regusers} and ${regusers.size()}">No Registered Users :c</p>
 
     <ul>
-        <li th:each="user : ${regusers}" th:text="${user.name}"></li>
+        <li th:each="user : ${regusers}" th:text="${user.username}"></li>
     </ul>
-
-    <p th:unless="${tempusers} and ${tempusers.size()}">No Temporary Users :c</p>
 
 </body>
 </html>

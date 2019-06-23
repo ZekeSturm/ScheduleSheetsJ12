@@ -63,6 +63,7 @@ public class ErrorPackage {
     public boolean addAux(String key, Object value) {
         // lowercase for comparison
         String chKey = key.toLowerCase();
+        if (chKey.length() < 6) chKey += "------";
 
         // Check for reserved fields
         if (chKey.substring(0, 5).equals("auxmsg") || chKey.equals("message") || chKey.equals("error")) return false;
@@ -89,6 +90,9 @@ public class ErrorPackage {
     public Object getAux(String key) {
         // see addAux for notes
         String chKey = key.toLowerCase();
+
+        if (chKey.length() < 6) chKey += "------";
+
         if (chKey.substring(0, 5).equals("auxmsg") || chKey.equals("message") || chKey.equals("error")) return "These values are not retrievable via this method";
         if (dataMap.containsKey(key)) return dataMap.get(key);
         return "This auxiliary key was not found";

@@ -118,14 +118,14 @@ public class TestController {
                     (Calendar)handler.getAux("endTime"));
             else out = seInit(eventname, eventdesc, args, (Calendar)handler.getAux("startTime"));
 
+            TempUser tu = new TempUser(username, password, out);
+
+            out.tempInit(tu);
+
             baseEventDao.save(out);
             staticEventDao.save(out);
 
-            TempUser tu = new TempUser(username, password, out);
-
             participantDao.save(tu);
-
-            out.tempInit(tu);
 
 
             model.addAttribute("events", baseEventDao.findAll());
@@ -133,7 +133,7 @@ public class TestController {
             model.addAttribute("participants", participantDao.findAll());
             model.addAttribute("regusers", regUserDao.findAll());
 
-            return "redirect:test/index";
+            return "redirect:";
 
         } else {
             model.addAttribute("badpass", true);

@@ -18,9 +18,7 @@ import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 public abstract class BaseEvent {
 
     @Id
-    @GeneratedValue(
-            strategy = GenerationType.TABLE
-    )
+    @GeneratedValue(strategy = GenerationType.TABLE)
     private int id;
 
     protected String eventName;
@@ -33,16 +31,16 @@ public abstract class BaseEvent {
     protected byte[] creatorKey;
 
     // Obfuscate creator salt if TempUser
-    private ArrayList<byte[]> possibleCreatorSalts = new ArrayList<>();
+    @ElementCollection
+    private List<GrainOfSalt> possibleCreatorSalts = new ArrayList<>();
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "time_id", referencedColumnName = "id")
+    @Embedded
     protected EventTime time;
 
     protected EventType type;
 
     // All participants
-    @ManyToMany
+    @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     protected List<Participant> participants;
 
     // TempUsers
@@ -75,7 +73,8 @@ public abstract class BaseEvent {
             }
             return false;
         } else {
-            for (byte[] b : possibleCreatorSalts) {
+            for (GrainOfSalt g : possibleCreatorSalts) {
+                byte[] b = g.getSalt();
                 ErrorPackage cast = makeKey(b, pass);
                 if (cast.hasError()) continue;
                 if (isKey((byte[])cast.getAux("key"))) return true;
@@ -125,11 +124,11 @@ public abstract class BaseEvent {
             SecureRandom sR = SecureRandom.getInstance("SHA1PRNG");
             int seed = r.nextInt(100);
             for (int i = 0; i < 100; i++) {
-                if (seed == i) possibleCreatorSalts.add(salt);
+                if (seed == i) possibleCreatorSalts.add(new GrainOfSalt(salt));
                 else {
                     byte[] nextByte = new byte[32];
                     sR.nextBytes(nextByte);
-                    possibleCreatorSalts.add(nextByte);
+                    possibleCreatorSalts.add(new GrainOfSalt(nextByte));
                 }
             }
             return noError(true);
@@ -185,23 +184,24 @@ public abstract class BaseEvent {
         }
     }
 
-    private void addTempUser(TempUser t) {
+    protected void participantsInit() { if (participants == null) participants = new ArrayList<>(); }
+    protected void tempUsersInit() { if (tempUsers == null) tempUsers = new ArrayList<>(); }
+
+    protected void addTempUser(TempUser t) {
         tempUsers.add(t);
         t.setParent(this);
     }
 
-    private void removeTempUser(TempUser t) {
+    protected void removeTempUser(TempUser t) {
         if (t != null) t.setParent(null);
         if (tempUsers.contains(t)) tempUsers.remove(t);
     }
 
-    private void addTime(EventTime t) {
+    protected void addTime(EventTime t) {
         this.time = t;
-        t.setParent(this);
     }
 
-    private void deleteTime(EventTime t) {
-        if (t != null) t.setParent(null);
+    protected void deleteTime() {
         this.time = null;
     }
 }

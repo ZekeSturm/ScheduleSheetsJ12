@@ -42,9 +42,9 @@ public class StaticEvent extends BaseEvent {
         out.eventDesc = eventDesc;
 
         if (hasEnd) {
-            out.time = new EventTime(startTime, endTime);
+            out.addTime(new EventTime(startTime, endTime));
         } else {
-            out.time = new EventTime(startTime);
+            out.addTime(new EventTime(startTime));
         }
 
         if (hasEnd) out.type = SOS;
@@ -67,6 +67,8 @@ public class StaticEvent extends BaseEvent {
     { return seInit(eventName, eventDesc, userArgs, startTime, null, false); }
 
     public void addParticipant(Participant p) {
+        participantsInit();
+        tempUsersInit();
         participants.add(p);
         if (!p.registered()) tempUsers.add((TempUser)p);
     }

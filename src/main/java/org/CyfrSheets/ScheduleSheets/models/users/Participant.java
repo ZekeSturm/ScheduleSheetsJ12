@@ -17,13 +17,9 @@ import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 public abstract class Participant {
 
-    /**
     @Id
-    @GeneratedValue(
-            strategy = GenerationType.TABLE
-    )
+    @GeneratedValue(strategy = GenerationType.TABLE)
     private int id;
-    */
 
     /**
      * was needed for deprecated salt uniqueness
@@ -36,7 +32,7 @@ public abstract class Participant {
     @Size(min = 3, max = 20)
     private String username;
 
-    @ManyToMany(mappedBy = "participants")
+    @ManyToMany(mappedBy = "participants", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     private List<BaseEvent> events;
 
     private boolean isUser;
@@ -54,10 +50,10 @@ public abstract class Participant {
     abstract public boolean registered();
 
     // Check ID without returning ID.
-    abstract public boolean checkID(Participant p);
+    public boolean checkID(Participant p) { return this.id == p.id; }
 
     public String getUsername() { return username; }
-    abstract public int getID(); // TODO - Make protected if it won't break things
+    public int getID() { return id; }; // TODO - Make protected if it won't break things
 
     // Comparator abstract: Body to be split between TempUser and RegUser below
     abstract public boolean equals(Participant p);

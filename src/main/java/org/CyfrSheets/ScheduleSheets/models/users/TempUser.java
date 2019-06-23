@@ -8,7 +8,6 @@ import javax.persistence.*;
 @Entity
 public class TempUser extends Participant {
 
-    @Id
     @GeneratedValue(strategy = GenerationType.TABLE)
     int tID;
 
@@ -25,9 +24,9 @@ public class TempUser extends Participant {
 
     public TempUser() { }
 
-    public int getID() { return tID; }
+    public int getTID() { return tID; }
 
-    public boolean checkID(Participant p) {
+    public boolean checkTID(Participant p) {
         if (p.registered()) return false;
         return p.getID() == tID;
     }
