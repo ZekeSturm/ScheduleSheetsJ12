@@ -14,10 +14,13 @@ import java.util.Random;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 
 @Entity
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 public abstract class BaseEvent {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(
+            strategy = GenerationType.TABLE
+    )
     private int id;
 
     protected String eventName;
@@ -32,7 +35,8 @@ public abstract class BaseEvent {
     // Obfuscate creator salt if TempUser
     private ArrayList<byte[]> possibleCreatorSalts = new ArrayList<>();
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "time_id", referencedColumnName = "id")
     protected EventTime time;
 
     protected EventType type;
@@ -42,7 +46,7 @@ public abstract class BaseEvent {
     protected List<Participant> participants;
 
     // TempUsers
-    @OneToMany
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "baseevent_id")
     protected List<TempUser> tempUsers;
 
@@ -114,7 +118,7 @@ public abstract class BaseEvent {
         }
     }
 
-    // Hide creator salt
+    // Hide creator salt (for tempUsers)
     protected ErrorPackage throwTheShaker(byte[] salt) {
         try {
             Random r = new SecureRandom();
@@ -165,4 +169,39 @@ public abstract class BaseEvent {
     public EventTime getTime() { return time; }
     public List<Participant> getParticipants() { return participants; }
 
+    public ErrorPackage getCreator() {
+        if (hasUserCreator) {
+            ErrorPackage out = yesError("Has User Creator");
+            out.addAux("userCreator", true);
+            return out;
+        } else {
+            for (TempUser t : tempUsers)
+                if (t.getID() == creatorId) {
+                    ErrorPackage out = noError();
+                    out.addAux("creator", t);
+                    return out;
+                }
+            return yesError("No creator found");
+        }
+    }
+
+    private void addTempUser(TempUser t) {
+        tempUsers.add(t);
+        t.setParent(this);
+    }
+
+    private void removeTempUser(TempUser t) {
+        if (t != null) t.setParent(null);
+        if (tempUsers.contains(t)) tempUsers.remove(t);
+    }
+
+    private void addTime(EventTime t) {
+        this.time = t;
+        t.setParent(this);
+    }
+
+    private void deleteTime(EventTime t) {
+        if (t != null) t.setParent(null);
+        this.time = null;
+    }
 }

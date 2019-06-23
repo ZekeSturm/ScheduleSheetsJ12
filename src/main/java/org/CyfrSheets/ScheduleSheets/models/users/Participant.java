@@ -3,10 +3,7 @@ package org.CyfrSheets.ScheduleSheets.models.users;
 import org.CyfrSheets.ScheduleSheets.models.events.BaseEvent;
 import org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.ManyToMany;
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.security.MessageDigest;
@@ -17,11 +14,16 @@ import java.util.List;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 
 @Entity
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 public abstract class Participant {
 
+    /**
     @Id
-    @GeneratedValue
+    @GeneratedValue(
+            strategy = GenerationType.TABLE
+    )
     private int id;
+    */
 
     /**
      * was needed for deprecated salt uniqueness
@@ -39,8 +41,11 @@ public abstract class Participant {
 
     private boolean isUser;
 
-    private byte[] secPass = null;
-    private byte[] salt = null;
+    private byte[] secPass;
+    private byte[] salt;
+
+    // salt init check
+    boolean saltNull = true;
 
     // Methods
     protected Participant() { }
@@ -49,10 +54,10 @@ public abstract class Participant {
     abstract public boolean registered();
 
     // Check ID without returning ID.
-    public boolean checkID(int id) { return this.id == id; }
+    abstract public boolean checkID(Participant p);
 
     public String getUsername() { return username; }
-    public int getID() { return id; } // TODO - Make protected if it won't break things
+    abstract public int getID(); // TODO - Make protected if it won't break things
 
     // Comparator abstract: Body to be split between TempUser and RegUser below
     abstract public boolean equals(Participant p);
@@ -62,7 +67,6 @@ public abstract class Participant {
         if (p.isUser != this.isUser) return false;
         if (!p.username.equals(this.username)) return false;
         if (isUser) {
-            // TODO - Check email & hashes w/ User-specific submethod.
         } else {
             // If hashes are present, check them
             if (secPass != null && salt != null) {
@@ -132,6 +136,10 @@ public abstract class Participant {
 
     // Get a new salt and save it. Called every time a password is made or changed
     protected ErrorPackage shakeSalt() {
+        if (saltNull) {
+            salt = new byte[32];
+            saltNull = false;
+        }
         try {
             SecureRandom sR = SecureRandom.getInstance("SHA1PRNG");
             sR.nextBytes(salt);

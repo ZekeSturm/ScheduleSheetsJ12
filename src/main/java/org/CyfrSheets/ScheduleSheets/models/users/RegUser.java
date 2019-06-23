@@ -3,7 +3,9 @@ package org.CyfrSheets.ScheduleSheets.models.users;
 import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidPasswordException;
 import org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage;
 
+import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.validation.constraints.NotNull;
 
@@ -11,10 +13,13 @@ import java.util.ArrayList;
 
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 
+@Entity
 public class RegUser extends Participant {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(
+            strategy = GenerationType.IDENTITY
+    )
     private int uID;
 
     @NotNull
@@ -40,17 +45,19 @@ public class RegUser extends Participant {
     public boolean equals(Participant p) {
         if (!p.registered()) return false;
         RegUser u = (RegUser)p;
-        if (!checkID(u.getID())) return false;
-        if (!checkUID(u.getUID())) return false;
+        if (!checkID(u)) return false;
         if (!emailAddr.equals(u.getEmail())) return false;
         return true;
     }
 
     public String getEmail() { return emailAddr; }
 
-    public int getUID() { return uID; }
+    public int getID() { return uID; }
 
-    public boolean checkUID(int uID) { return this.uID == uID; }
+    public boolean checkID(Participant p) {
+        if (!p.registered()) return false;
+        return p.getID() == uID;
+    }
 
     public void passTheSalt(byte[] salt) {
         cSaltListInit();

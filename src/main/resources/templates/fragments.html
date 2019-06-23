@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org/">
+
+<head th:fragment="head">
+
+    <!-- Bootstrap stylesheets and script -->
+    <link th:href="@{/css/bootstrap.css}" rel="stylesheet" />
+    <link th:href="@{/css/techjobs.css}" rel="stylesheet" />
+    <script type="text/javascript" th:src="@{/js/bootstrap.js}"></script>
+
+    <title th:text="'ScheduleSheets' + ${title == null ? '' : ' :: ' + title}">ScheduleSheets</title>
+</head>
+
+<body>
+
+<div th:fragment="page-header" class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container">
+        <div class="navbar-header">
+            <a th:href="@{/}" class="navbar-brand">ScheduleSheets</a>
+        </div>
+        <div class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+                <li><a th:href="@{/}">Index</a></li>
+                <li><a th:href="@{/event/add}">New Event</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div th:fragment="page-header-test" class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container">
+        <div class="navbar-header">
+            <a th:href="@{/test}" class="navbar-brand">ScheduleSheets Test</a>
+        </div>
+        <div class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+                <li><a th:href="@{/test/event/new}">New Event</a></li>
+                <li><a th:href="@{/test/passhash}">PassHashing</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

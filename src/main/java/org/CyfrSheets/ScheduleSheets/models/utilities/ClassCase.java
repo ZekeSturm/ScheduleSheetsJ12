@@ -9,7 +9,7 @@ public enum ClassCase {
     REGUSER ("regu"),
     TEMPUSER ("temu"),
     ERRORPACKAGE("erpk"),
-    
+
     UNKNOWN ("uknw");
 
     private String indicator;

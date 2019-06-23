@@ -106,7 +106,13 @@ public class ParserUtil {
             lastInt = false;
             buffer = 0;
         }
+        output.add(buffer);
 
         return output;
+    }
+
+    public static boolean parseBool(String parseThis) {
+        if (parseThis.toLowerCase().equals("true")) return true;
+        return false;
     }
 }
