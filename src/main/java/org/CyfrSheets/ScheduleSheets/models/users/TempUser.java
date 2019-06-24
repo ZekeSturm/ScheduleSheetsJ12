@@ -17,7 +17,7 @@ public class TempUser extends Participant {
     // Methods
     public TempUser(String name, String pass, BaseEvent parent) {
         ErrorPackage ep;
-        if (!pass.equals("")) ep = securePassword(pass);
+        if (!pass.isEmpty()) ep = securePassword(pass);
         setUsername(name);
         this.parent = parent;
     }

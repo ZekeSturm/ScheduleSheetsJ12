@@ -66,11 +66,13 @@ public class StaticEvent extends BaseEvent {
                                      HashMap<String, Object> userArgs, Calendar startTime)
     { return seInit(eventName, eventDesc, userArgs, startTime, null, false); }
 
+    public boolean isStatic() { return true; }
+
     public void addParticipant(Participant p) {
         participantsInit();
         tempUsersInit();
         participants.add(p);
-        if (!p.registered()) tempUsers.add((TempUser)p);
+        if (!p.registered()) addTempUser((TempUser)p);
     }
 
     public void tempInit(TempUser t) {

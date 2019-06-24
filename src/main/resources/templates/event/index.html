@@ -1,10 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments :: head"></head>
+
 <body>
+<div th:replace="fragments :: page-header"></div>
+
+<h2>Plan your event!</h2>
+<p></p>
+<h3>Do you have a solid time in mind? If not, let us help!</h3>
+<p><a th:href="@{/event/new/static}">Set a time!</a>&nbsp&nbsp|&nbsp&nbsp
+    <a th:href="@{/event/new/planning}">Or plan for one!</a></p>
 
 </body>
 </html>

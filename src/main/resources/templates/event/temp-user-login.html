@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments :: head"></head>
+
+<body>
+<div th:replace="fragments :: page-header"></div>
+
+<form method="post">
+    <div class="form-group">
+        <label th:for="username">Name:</label>
+        <input type="text" name="username" />
+        <br>
+        <label th:unless="${creating}" th:for="password">Password (Optional):</label>
+        <label th:if="${creating}" th:for="password">Password:</label>
+        <input type="password" name="password" />
+        <br>
+        <label th:for="confirm">Confirm Password:</label>
+        <input type="password" name="confirm" />
+        <br>
+        <input type="submit" name="submit" />
+
+    </div>
+</form>
+
+</body>
+</html>

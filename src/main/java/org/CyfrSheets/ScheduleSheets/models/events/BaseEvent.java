@@ -58,6 +58,8 @@ public abstract class BaseEvent {
     // Methods
     public BaseEvent() { }
 
+    abstract public boolean isStatic();
+
     // Authorize creator info
     public boolean creatorAuth(Participant p) {
         String pass = eventName + p.getUsername() + creatorId;

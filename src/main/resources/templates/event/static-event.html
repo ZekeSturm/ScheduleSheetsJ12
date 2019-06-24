@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments :: head"></head>
+
+<body>
+<div th:replace="fragments :: page-header"></div>
+
+
+<h3 th:text="${targetevent.eventName}"></h3>
+<h4 th:text="${targetevent.eventDesc}"></h4>
+<hr />
+<ul>
+    <li th:each="participant : ${participants}">
+        <span th:text="${participant.username}"></span>
+    </li>
+</ul>
+
+<p>Send this link to people you'd like to invite:</p>
+<p th:text="@{__${#httpServletRequest.requestURL}__/join}"></p>
+
+</body>
+</html>

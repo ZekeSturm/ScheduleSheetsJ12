@@ -5,6 +5,8 @@ import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidDateTimeArrayExcep
 import java.util.ArrayList;
 import java.util.Calendar;
 
+import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
+
 public class ParserUtil {
 
     // Parse string directly to Calendar
@@ -21,7 +23,14 @@ public class ParserUtil {
 
     // Parse string to int array ready to feed into a Calendar.Builder (Date & Time)
     public static int[] parseDateAndTime (String dateTimeStr) throws InvalidDateTimeArrayException {
-        ArrayList<Integer> parsed = parseInts(dateTimeStr);
+        ErrorPackage parsedEP = parseInts(dateTimeStr);
+
+        if (parsedEP.hasError()) {
+            String eStr = parsedEP.getMessage();
+            throw new InvalidDateTimeArrayException(eStr);
+        }
+
+        ArrayList<Integer> parsed = (ArrayList<Integer>)parsedEP.getAux("arrayOut");
         int[] dtA = new int[6];
 
         if (parsed.size() == 5 || parsed.size() == 6) {
@@ -45,7 +54,15 @@ public class ParserUtil {
 
     // Parse string to int array ready to feed into a Calendar.Builder (Date Only)
     public static int[] parseDate(String dateStr) throws InvalidDateTimeArrayException {
-        ArrayList<Integer> parsed = parseInts(dateStr);
+
+        ErrorPackage parsedEP = parseInts(dateStr);
+
+        if (parsedEP.hasError()) {
+            String eStr = parsedEP.getMessage();
+            throw new InvalidDateTimeArrayException(eStr);
+        }
+
+        ArrayList<Integer> parsed = (ArrayList<Integer>)parsedEP.getAux("arrayOut");
 
         int[] dA = new int[3];
 
@@ -68,7 +85,15 @@ public class ParserUtil {
 
     // Parse string to int array ready to feed into a Calendar.Builder (Time Only)
     public static int[] parseTime(String timeStr) throws InvalidDateTimeArrayException {
-        ArrayList<Integer> parsed = parseInts(timeStr);
+
+        ErrorPackage parsedEP = parseInts(timeStr);
+
+        if (parsedEP.hasError()) {
+            String eStr = parsedEP.getMessage();
+            throw new InvalidDateTimeArrayException(eStr);
+        }
+
+        ArrayList<Integer> parsed = (ArrayList<Integer>)parsedEP.getAux("arrayOut");
 
         int[] tA = new int[3];
 
@@ -89,7 +114,7 @@ public class ParserUtil {
     }
 
     // Parse ints out of string
-    public static ArrayList<Integer> parseInts(String parseThis) {
+    public static ErrorPackage parseInts(String parseThis) {
         char[] cArray = parseThis.toCharArray();
         ArrayList<Integer> output = new ArrayList<>();
         boolean lastInt = false;
@@ -106,9 +131,39 @@ public class ParserUtil {
             lastInt = false;
             buffer = 0;
         }
-        output.add(buffer);
 
-        return output;
+        if (!lastInt && buffer == 0) {
+            return yesError("No Integers In String");
+        }
+
+        output.add(buffer);
+        ErrorPackage outputEP = noError();
+
+        if (output.size() == 1) {
+            outputEP.addAux("intOut", output.get(0));
+            outputEP.addAux("singleInt", true);
+        }
+        else {
+            outputEP.addAux("arrayOut", output);
+            outputEP.addAux("singleInt", false);
+        }
+
+        return outputEP;
+    }
+
+    public static ErrorPackage parseNextInt(String parseThis) {
+        ErrorPackage handler = parseInts(parseThis);
+
+        if (handler.hasError()) return handler;
+
+        if ((boolean)handler.getAux("singleInt")) return handler;
+        else {
+            int out = ((ArrayList<Integer>)handler.getAux("arrayOut")).get(0);
+            // Clear handler
+            handler = noError();
+            handler.addAux("intOut", out);
+            return handler;
+        }
     }
 
     public static boolean parseBool(String parseThis) {
