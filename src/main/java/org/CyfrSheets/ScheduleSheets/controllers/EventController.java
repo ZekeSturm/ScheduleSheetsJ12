@@ -4,6 +4,8 @@ import org.CyfrSheets.ScheduleSheets.models.data.*;
 import org.CyfrSheets.ScheduleSheets.models.events.BaseEvent;
 import org.CyfrSheets.ScheduleSheets.models.events.StaticEvent;
 import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidDateTimeArrayException;
+import org.CyfrSheets.ScheduleSheets.models.users.Participant;
+import org.CyfrSheets.ScheduleSheets.models.users.RegUser;
 import org.CyfrSheets.ScheduleSheets.models.users.TempUser;
 import org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,9 +13,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import java.util.Calendar;
+import java.util.Enumeration;
 import java.util.HashMap;
 
+import static org.CyfrSheets.ScheduleSheets.controllers.UserController.*;
 import static org.CyfrSheets.ScheduleSheets.models.events.StaticEvent.seInit;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
@@ -21,6 +27,8 @@ import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
 @Controller
 @RequestMapping(value = "event")
 public class EventController {
+
+    /** Controller for all events - TempUsers also handled here given they are event-unique */
 
     @Autowired
     BaseEventDao baseEventDao;
@@ -38,16 +46,30 @@ public class EventController {
     RegUserDao regUserDao;
 
     @GetMapping(value = "")
-    public String eventHub(Model model) {
+    public String eventHub(Model model, HttpSession session) {
+
+        boolean logged = checkLog(session);
+
+        if (!logged) session = clearUser(session);
 
         model.addAttribute("title", "Events");
+        model.addAttribute("sessionId", session.getId());
 
         return "event/index";
     }
 
     @GetMapping(value = "new/static")
-    public String newStaticEvent(Model model) {
-        model.addAttribute("logged", false);
+    public String newStaticEvent(Model model, HttpSession session) {
+
+        boolean logged = checkLog(session);
+        boolean tLogged = checkTLog(session);
+
+        if (!logged) session = clearUser(session);
+
+        model.addAttribute("sessionId", session.getId());
+        model.addAttribute("logged", logged);
+        model.addAttribute("tLogged", tLogged);
+
         model.addAttribute("badpass", false);
         model.addAttribute("title", "Create your new event!");
 
@@ -80,21 +102,32 @@ public class EventController {
         return "event/new-static";
     } */
 
+    // TODO - Package all this crap in a form
+
     @PostMapping(value = "new/static")
-    public String newStaticEvent(Model model, @RequestParam("eventName") String name,
+    public String newStaticEvent(Model model, HttpServletRequest request, @RequestParam("eventName") String name,
                                  @RequestParam("eventDesc") String desc, @RequestParam("startDate") String startDate,
                                  @RequestParam("startTime") String startTime, @RequestParam("endDate") String endDate,
                                  @RequestParam("endTime") String endTime, @RequestParam("cName") String cName,
                                  @RequestParam("cPass") String cPass, @RequestParam("confirm") String confirm) {
 
+        boolean logged = checkLog(request.getSession());
+
         boolean passmatch;
-        if (cPass.equals(confirm)) {
+        if (logged) {
+            // Skip tempuser creation steps
             passmatch = true;
         } else {
-            model.addAttribute("badpass", true);
-            model.addAttribute("logged", false);
-            model.addAttribute("title", "Create your new event!");
-            return "redirect:";
+            // Briefly hijack first logged check to clear user data
+            request = clearUserReq(request);
+
+            if (cPass.equals(confirm)) {
+                passmatch = true;
+            } else {
+                model.addAttribute("badpass", true);
+                model.addAttribute("title", "Create your new event!");
+                return "redirect:";
+            }
         }
 
         Calendar.Builder cb = new Calendar.Builder();
@@ -116,6 +149,7 @@ public class EventController {
             handler = yesError(e.getMessage());
         }
 
+        // check for end time
         ErrorPackage hTwo;
         try {
             int[] eDA = parseDate(endDate);
@@ -135,36 +169,69 @@ public class EventController {
         if (handler.hasError()) {
             model.addAttribute("baddta", true);
             model.addAttribute("title", "Create your new event!");
-            model.addAttribute("logged", true);
-            model.addAttribute("cName", cName);
-            model.addAttribute("cPass", cPass);
 
-            return "redirect:new/static";
+            return "redirect:";
         }
 
         StaticEvent out;
 
         HashMap<String, Object> args = new HashMap<>();
 
+        // Find user and put them in args if logged in
+        if (logged) {
+            RegUser u = null;
+
+            for (RegUser ru : regUserDao.findAll())
+                if (ru.getUID() == (int)request.getSession().getAttribute("userId")) u = ru;
+
+            // Normally I'd check after the above, but it should be impossible to have a cookie and be missing that data
+            // Similarly it should be impossible to delete an active user unless someone jimmy drop tables's me.
+            // TODO - On that note, reimplement input sanitizer at some point down the line
+
+            // ... possibly implement null user detection/exception here if it starts giving problems
+
+            args.put("user", u);
+        }
+
+        // Unpack whether or not there's an end time
         if (!hTwo.hasError()) out = seInit(name, desc, args, (Calendar)handler.getAux("startTime"),
                 (Calendar)handler.getAux("endTime"));
         else out = seInit(name, desc, args, (Calendar)handler.getAux("startTime"));
 
-        TempUser tu = new TempUser(cName, cPass, out);
 
-        out.tempInit(tu);
+        // Skip TempUser creation if logged - already fed out a user.
+        if (!logged) {
+            // TempUser Creation
+            TempUser tu = new TempUser(cName, cPass, out);
+
+            out.tempInit(tu);
+
+            participantDao.save(tu);
+            tempUserDao.save(tu);
+        }
 
         baseEventDao.save(out);
         staticEventDao.save(out);
 
-        participantDao.save(tu);
-        tempUserDao.save(tu);
-
         return "redirect:/event/" + out.getId();
     }
 
+    //--------------------------------------------------------------------------------------------------
+    // Two methods below are presently unused. Will be scrapped if modals work anyrate
+    //--------------------------------------------------------------------------------------------------
+
     @GetMapping(value="new/static/temp")
-    public String newStaticTempCreator(Model model) {
+    public String newStaticTempCreator(Model model, HttpSession session) {
+
+        boolean logged = checkLog(session);
+        boolean tLogged = checkTLog(session);
+
+        model.addAttribute("logged", logged);
+
+        if (logged || tLogged) return "redirect:/event/new/static";
+        else session = clearUser(session);
+
+        model.addAttribute("sessionId", session.getId());
 
         model.addAttribute("creating", true);
         model.addAttribute("title", "Register for your event");
@@ -173,26 +240,46 @@ public class EventController {
     }
 
     @PostMapping(value="new/static/temp")
-    public String newTempCreator(Model model, @RequestParam("username") String username,
+    public String newTempCreator(Model model, HttpServletRequest request, @RequestParam("username") String username,
                                  @RequestParam("password") String password, @RequestParam("confirm") String confirm) {
+
+        boolean logged = checkLog(request.getSession());
+        boolean tLogged = checkTLog(request.getSession());
+
+        if (logged || tLogged) return "redirect:/event/new/static";
+        else request = clearUserReq(request);
+
 
         if (password.equals(confirm)) {
 
             model.addAttribute("cName", username);
             model.addAttribute("cPass", password);
+
+            request.getSession().setAttribute("tLogged", true);
             return "redirect:log";
         } else {
             model.addAttribute("badpass");
-            return "redirect:temp";
+            return "redirect:";
         }
     }
 
     @GetMapping(value="{id}")
-    public String eventPage(Model model, @PathVariable("id") String eventID) {
+    public String eventPage(Model model, HttpSession session, @PathVariable("id") String eventID) {
+
+        model.addAttribute("sessionId", session.getId());
+
+        boolean logged = checkLog(session);
+
+        model.addAttribute("logged", logged);
+
+        if (!logged) session = clearUser(session);
 
         ErrorPackage handler = getEvent(model, parseNextInt(eventID));
 
-        if (handler.hasError()) return "event/static-event";
+        if (handler.hasError()) {
+            model.addAttribute("missing", true);
+            return "event/static-event";
+        }
 
         model.addAttribute("missing", false);
 
@@ -205,11 +292,25 @@ public class EventController {
     }
 
     @GetMapping(value="{id}/join")
-    public String addUser(Model model, @PathVariable("id") String eventID) {
+    public String addUser(Model model, HttpSession session, @PathVariable("id") String eventID) {
+
+        model.addAttribute("sessionId", session);
+
+        boolean logged = checkLog(session);
+
+        model.addAttribute("logged", logged);
+
+        if (logged) {
+            // handle user join
+
+        } else session = clearUser(session);
 
         ErrorPackage handler = getEvent(model, parseNextInt(eventID));
 
-        if (handler.hasError()) return "event/static-event";
+        if (handler.hasError()) {
+            model.addAttribute("missing", true);
+            return "event/static-event";
+        }
 
         model.addAttribute("missing", false);
 
@@ -219,10 +320,17 @@ public class EventController {
     }
 
     @PostMapping(value="{id}/join")
-    public String addUser(Model model, @PathVariable("id") String eventID, @RequestParam("username") String username,
-                          @RequestParam("password") String password, @RequestParam("confirm") String confirm) {
+    public String addUser(Model model, HttpServletRequest request, @PathVariable("id") String eventID,
+                          @RequestParam("username") String username, @RequestParam("password") String password,
+                          @RequestParam("confirm") String confirm) {
+
+        boolean logged = checkLog(request.getSession());
+
+        if (!logged) request = clearUserReq(request);
 
         ErrorPackage handler = getEvent(model, parseNextInt(eventID));
+
+        model.addAttribute("missing", true);
 
         if (handler.hasError()) return "event/static-event";
 
@@ -230,23 +338,44 @@ public class EventController {
 
         BaseEvent targetEvent = (BaseEvent)handler.getAux("event");
 
-        if (password.equals(confirm) || (password.isEmpty() && confirm.isEmpty())) {
-            TempUser tu = new TempUser(username, password, targetEvent);
-            participantDao.save(tu);
-            tempUserDao.save(tu);
-            if (targetEvent.isStatic()) {
-                ((StaticEvent)targetEvent).addParticipant(tu);
-                staticEventDao.save((StaticEvent)targetEvent);
-            } else {
-                // Implement planning event add user. Likely requires outside methods/encapsulation
-            }
-            baseEventDao.save(targetEvent);
+        Participant p = null;
+
+        if (logged) {
+            // Handle registered user join
+            int uID = (int)request.getSession().getAttribute("userId");
+
+            for (RegUser ru : regUserDao.findAll()) if (ru.getUID() == uID) p = ru;
+
+            regUserDao.save((RegUser)p);
         } else {
-            model.addAttribute("passmismatch", true);
-            return "redirect:/event/" + eventID + "/join";
+            // Handle Temp User join
+            if (password.equals(confirm) || (password.isEmpty() && confirm.isEmpty())) {
+                p = new TempUser(username, password, targetEvent);
+                tempUserDao.save((TempUser)p);
+            } else {
+                model.addAttribute("passmismatch", true);
+                return "redirect:/event/" + eventID + "/join";
+            }
         }
 
+        if (targetEvent.isStatic()) {
+            ((StaticEvent) targetEvent).addParticipant(p);
+            staticEventDao.save((StaticEvent) targetEvent);
+        } else {
+            // Implement planning event add user. Likely requires outside methods/encapsulation
+        }
+
+        participantDao.save(p);
+        baseEventDao.save(targetEvent);
+
         return "redirect:/event/" + eventID;
+    }
+
+    // Check temporary login status
+    public static boolean checkTLog(HttpSession session) {
+        Enumeration<String> sNE = session.getAttributeNames();
+        while (sNE.hasMoreElements()) if (sNE.nextElement().equals("tLogged")) return true;
+        return false;
     }
 
     // Feed in parseNextInt(idString)

@@ -113,7 +113,7 @@ public class ErrorPackage {
 
     public static ErrorPackage noError() { return new ErrorPackage("No Error!", false); }
 
-    public static ErrorPackage yesError(String msg, String ancil) {
+    public static ErrorPackage yesError(String msg, boolean ancil) {
         ErrorPackage out = yesError(msg);
         out.addAux("ancil", ancil);
         return out;

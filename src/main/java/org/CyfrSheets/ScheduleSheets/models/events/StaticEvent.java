@@ -32,7 +32,7 @@ public class StaticEvent extends BaseEvent {
     public static StaticEvent seInit(String eventName, String eventDesc, HashMap<String, Object> userArgs, Calendar startTime, Calendar endTime, boolean hasEnd) {
         StaticEvent out;
         boolean regUser = false;
-        if (userArgs.containsKey("user")) {
+        if (userArgs.containsKey("user") && userArgs.get("user") != null) {
             RegUser u = (RegUser)userArgs.get("user");
             out = new StaticEvent(u);
             regUser = true;

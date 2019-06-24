@@ -2,6 +2,8 @@ package org.CyfrSheets.ScheduleSheets.models.utilities;
 
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassCase.*;
 
+// TODO - Implement this class en masse to check all casting operations
+
 public class ClassChecker {
 
     public static ClassCase checkClass(Object o) {

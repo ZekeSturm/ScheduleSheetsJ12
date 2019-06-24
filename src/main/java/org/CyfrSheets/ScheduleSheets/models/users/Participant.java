@@ -130,6 +130,8 @@ public abstract class Participant {
         return true;
     }
 
+
+
     // Get a new salt and save it. Called every time a password is made or changed
     protected ErrorPackage shakeSalt() {
         if (saltNull) {
