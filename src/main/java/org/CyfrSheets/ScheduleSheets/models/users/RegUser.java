@@ -1,30 +1,33 @@
 package org.CyfrSheets.ScheduleSheets.models.users;
 
 import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidPasswordException;
+import org.CyfrSheets.ScheduleSheets.models.utilities.ClassCase;
 import org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
+import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassChecker.checkClass;
 
 @Entity
+@SequenceGenerator(name = "regseq", initialValue = 1, allocationSize = 2147483645)
 public class RegUser extends Participant {
 
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @Column(updatable = false, nullable = false)
     private int uID;
 
     @NotNull
     private String emailAddr;
 
     // Session key
-    private byte[] seshKey = null;
+    private byte[] seshKey = new byte[32];
 
     // List of salts for keys for created events & array initializer bool
     private ArrayList<byte[]> cSaltList;
@@ -37,6 +40,8 @@ public class RegUser extends Participant {
         this.emailAddr = emailAddr;
         securePassword(pass);
     }
+
+    public RegUser() { }
 
     // Registered user? (Yes)
     public boolean registered() { return true; }
@@ -73,36 +78,20 @@ public class RegUser extends Participant {
         }
     }
 
-    public ErrorPackage keyGen(String pass) {
-        ErrorPackage handler = checkPassword(pass);
-        if (handler.hasError()) return handler;
-        if (Boolean.valueOf((String)handler.getAux("ancil"))) {
-            // Should trigger on all non-registration/login calls
-            if (seshKey != null) {
-                handler = noError();
-                handler.addAux("sKey", seshKey);
-                return handler;
-            }
-            // Should only be necessary for registration
-            String keyStr = pass + getUsername() + getID() + getUID();
-            try {
-                MessageDigest md = MessageDigest.getInstance("SHA-256");
-                seshKey = md.digest(keyStr.getBytes());
-                handler = noError();
-                handler.addAux("sKey", seshKey);
-            } catch (NoSuchAlgorithmException e) {
-                handler = yesError("No such algorithm exception - keyGen");
-            }
+    // Generate new random session key
+    public ErrorPackage keyGen() {
+        try {
+            SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
+            sr.nextBytes(seshKey);
+            ErrorPackage handler = noError();
+            handler.addAux("key", seshKey);
             return handler;
-        } else {
-            return yesError("Password Mismatch", false);
+        } catch (NoSuchAlgorithmException e) {
+            return yesError(e.getMessage() + " - in keyGen(no args)");
         }
     }
 
-    // This pair of methods is redundant, fix later
-    public boolean checkKey(byte[] key) { return isKey(key); }
-
-    private boolean isKey(byte[] hash) {
+    public boolean checkKey(byte[] hash) {
         for (int i = 0; i < hash.length ; i++) if (hash[i] != seshKey[i]) return false;
         return true;
     }

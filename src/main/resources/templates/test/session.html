@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments :: head"></head>
+
+<body>
+
+<h1 th:text="${title}">Default Title</h1>
+
+<form method="post">
+    <label th:for="key">Key:</label>
+    <input type="text" name="key" />
+    <br>
+    <label th:for="value">Value:</label>
+    <input type="text" name="value" />
+    <input type="hidden" name="logInOut" value="true" />
+    <input type="submit" value="Add To List" />
+</form>
+
+<form method="post">
+    <input type="hidden" name="key" value=" " />
+    <input type="hidden" name="value" value=" " />
+    <input type="hidden" name="logInOut" value="false" />
+    <input type="submit" value="Clear List" />
+</form>
+
+<ul>
+    <li th:if="logged" th:each="key : ${keyset}" th:text="${key} + ' : ' + ${list.get(key)}"></li>
+</ul>
+
+</body>
+</html>

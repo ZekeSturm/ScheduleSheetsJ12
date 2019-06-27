@@ -11,10 +11,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.*;
 import java.util.Enumeration;
 
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
@@ -32,7 +29,7 @@ public class UserController {
     @Autowired
     private BaseEventDao baseEventDao;
 
-    @GetMapping(value = "/")
+    @GetMapping(value = { "", "/" })
     public String index(Model model, HttpSession session) {
 
         model.addAttribute("sessionId", session.getId());
@@ -44,7 +41,7 @@ public class UserController {
         if (logged) {
             // fetch user ID from session
             int uID = (int)session.getAttribute("userId");
-            String username = ((Cookie)session.getAttribute("userCookie")).getName();
+            String username = (String)session.getAttribute("userName");
             model.addAttribute("title", username + "'s proflie");
             return "redirect:" + uID;
         } else {
@@ -128,7 +125,7 @@ public class UserController {
         RegUser target = null;
 
         for (RegUser u : regUserDao.findAll()) {
-            if (u.getUsername().toLowerCase().equals(username)) target = u;
+            if (u.getUsername().toLowerCase().equals(username.toLowerCase())) target = u;
         }
 
         // Username not found
@@ -171,24 +168,18 @@ public class UserController {
         if (!logged) return "redirect:/user";
 
         model.addAttribute("sessionId", session.getId());
+        model.addAttribute("userId", session.getAttribute("userId"));
         model.addAttribute("title", "Log Off");
 
         return "user/logoff";
     }
 
+    // Only called if submit post button is pressed. get button should redirect to user profile
     @PostMapping(value = "logoff")
-    public String logOff(Model model, HttpServletRequest request, @RequestParam("out") String outStr) {
+    public String logOff(Model model, HttpServletRequest request) {
 
-        boolean out = parseBool(outStr);
-
-        if (out) {
-            // Log Off
-            request = clearUserReq(request);
-            return "redirect:/";
-        } else {
-            // Redirect to userpage
-            return "redirect:/user/" + (int)request.getSession().getAttribute("userId");
-        }
+        request = clearUserReq(request);
+        return "redirect:/";
     }
 
     @GetMapping(value = "register")
@@ -232,13 +223,13 @@ public class UserController {
         }
 
         // Check for password/confirm
-        if (password.isEmpty() || confirm.isEmpty()) {
+        if (password.isEmpty()) {
             model.addAttribute("missingpass", true);
             return "redirect:/user/register";
         }
 
         // If passwords do not match, return to register page
-        if (!password.equals(confirm)) {
+        if (!password.equals(confirm) || confirm.isEmpty()) {
             model.addAttribute("passmismatch", true);
             return "redirect:/user/register";
         }
@@ -268,7 +259,7 @@ public class UserController {
             regUserDao.save(newU);
             participantDao.save(newU);
 
-            ErrorPackage handler = newU.keyGen(password); // TODO - Use the key from this for authentication across app
+            ErrorPackage handler = newU.keyGen(); // TODO - Use the key from this for authentication across app
 
             if (handler.hasError()) {
                 if (handler.getMessage().equals("Password Mismatch")) {
@@ -281,7 +272,7 @@ public class UserController {
 
             request = userSessionInitReq(request, newU, (byte[])handler.getAux("sKey"));
 
-            return "redirect:/user/" + newU.getUID();
+            return "redirect:/user/" + newU.getID();
         } catch (InvalidPasswordException e) {
             model.addAttribute("passmismatch", true);
             // Clear user data for security
@@ -293,7 +284,7 @@ public class UserController {
     // Use anytime login status is relevant... so likely on every page that has a navbar
     public static boolean checkLog(HttpSession session) {
         Enumeration<String> sesNameEnum = session.getAttributeNames();
-        while (sesNameEnum.hasMoreElements()) if (sesNameEnum.nextElement().equals("userCookie")) return true;
+        while (sesNameEnum.hasMoreElements()) if (sesNameEnum.nextElement().equals("userId")) return true;
         return false;
     }
 
@@ -302,7 +293,7 @@ public class UserController {
         Enumeration<String> sNE = session.getAttributeNames();
         while (sNE.hasMoreElements()) {
             String next = sNE.nextElement();
-            if (next.equals("userCookie") || next.equals("userKey") || next.equals("userId"))
+            if (next.equals("userName") || next.equals("userKey") || next.equals("userId"))
                 session.removeAttribute(next);
         }
         return session;
@@ -313,14 +304,14 @@ public class UserController {
         Enumeration<String> sNE = request.getSession().getAttributeNames();
         while (sNE.hasMoreElements()) {
             String next = sNE.nextElement();
-            if (next.equals("userCookie") || next.equals("userKey") || next.equals("userId"))
+            if (next.equals("userName") || next.equals("userKey") || next.equals("userId"))
                 request.getSession().removeAttribute(next);
         }
         return request;
     }
 
     private int uIDtopID(int uID) {
-        for (RegUser u : regUserDao.findAll()) if (u.getUID() == uID) return u.getID();
+        for (RegUser u : regUserDao.findAll()) if (u.getID() == uID) return u.getID();
         return -1;
     }
 
@@ -331,15 +322,15 @@ public class UserController {
         session = clearUser(session);
 
         // Create user login cookie. Carries minimal data - main purpose is for timing out the session data
-        Cookie userCookie = new Cookie("username", u.getUsername());
+        String userName = u.getUsername(); // temp changed to string
         // User data timeout: 10 minutes
-        userCookie.setMaxAge(600);
+        // userName.setMaxAge(600);
         // Bad javascript injections are bad
-        userCookie.setHttpOnly(true);
+        // userName.setHttpOnly(true);
 
-        session.setAttribute("userCookie", userCookie);
+        session.setAttribute("userName", userName);
         session.setAttribute("userKey", key);
-        session.setAttribute("userId", u.getUID());
+        session.setAttribute("userId", u.getID());
         return session;
     }
 
@@ -350,15 +341,15 @@ public class UserController {
         request = clearUserReq(request);
 
         // Create user login cookie. Carries minimal data - main purpose is for timing out the session data
-        Cookie userCookie = new Cookie("username", u.getUsername());
+        Cookie userName = new Cookie("username", u.getUsername());
         // User data timeout: 10 minutes
-        userCookie.setMaxAge(600);
+        userName.setMaxAge(600);
         // Bad javascript injections are bad
-        userCookie.setHttpOnly(true);
+        userName.setHttpOnly(true);
 
-        request.getSession().setAttribute("userCookie", userCookie);
+        request.getSession().setAttribute("userName", userName);
         request.getSession().setAttribute("userKey", key);
-        request.getSession().setAttribute("userId", u.getUID());
+        request.getSession().setAttribute("userId", u.getID());
         return request;
     }
 }

@@ -35,8 +35,6 @@ public abstract class Participant {
     @ManyToMany(mappedBy = "participants", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     private List<BaseEvent> events;
 
-    private boolean isUser;
-
     private byte[] secPass;
     private byte[] salt;
 

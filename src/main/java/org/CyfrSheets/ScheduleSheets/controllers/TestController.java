@@ -14,7 +14,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Enumeration;
 import java.util.HashMap;
 
 import static org.CyfrSheets.ScheduleSheets.models.events.StaticEvent.seInit;
@@ -48,6 +54,64 @@ public class TestController {
         model.addAttribute("title","Test Index");
 
         return "test/index";
+    }
+
+    @GetMapping(value = "session")
+    public String sessionTest (Model model, HttpServletRequest request, HttpServletResponse response) {
+
+        HttpSession session = request.getSession();
+
+        HashMap<String, String> sessionObjs = new HashMap<>();
+
+        Enumeration<String> sO = session.getAttributeNames();
+
+        Cookie[] cookies = request.getCookies();
+        if (cookies.length != 0) for (Cookie c : cookies) if (c.getName().equals("Login") && c.getValue().equals("true")) {
+            while (sO.hasMoreElements()) {
+                String next = sO.nextElement();
+                sessionObjs.put(next, (String) session.getAttribute(next));
+            }
+            model.addAttribute("logged", true);
+        } else model.addAttribute("logged", false);
+
+        model.addAttribute("list", sessionObjs);
+        ArrayList<String> keyset = new ArrayList<>(sessionObjs.keySet());
+        model.addAttribute("keyset", keyset);
+
+        return "test/session";
+    }
+
+    @PostMapping(value = "session")
+    public String sessionTest (Model model, HttpServletRequest request, HttpServletResponse response, @RequestParam("key") String key, @RequestParam("value") String value, @RequestParam("logInOut") String inOutString) {
+
+        HttpSession session = request.getSession();
+
+        boolean login = parseBool(inOutString);
+        Cookie[] cookies = request.getCookies();
+        boolean already = false;
+        if (cookies.length != 0) for (Cookie c : cookies) if (c.getName().equals("Login") && c.getValue().equals("true")) already = true;
+
+        if (login) {
+            session.setAttribute(key, value);
+            if (!already) {
+                Cookie logged = new Cookie("Login", "true");
+                logged.setMaxAge(600);
+                response.addCookie(logged);
+            }
+            for (Cookie c : cookies) if (c.getName().equals("Login") && c.getValue().equals("true")) {
+                c.setMaxAge(c.getMaxAge() + 600);
+                break;
+            }
+        } else {
+            session.invalidate();
+            if (already) for (Cookie c : cookies) if (c.getName().equals("Login") && c.getValue().equals("true")) {
+                c.setMaxAge(0);
+                response.addCookie(c);
+                break;
+            }
+        }
+
+        return "redirect:/test/session";
     }
 
     @GetMapping(value = "event")

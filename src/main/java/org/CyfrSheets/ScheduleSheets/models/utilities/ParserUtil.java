@@ -7,6 +7,7 @@ import java.util.Calendar;
 
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 
+// Collection of user-created parsing methods
 public class ParserUtil {
 
     // Parse string directly to Calendar
@@ -53,7 +54,7 @@ public class ParserUtil {
     }
 
     // Parse string to int array ready to feed into a Calendar.Builder (Date Only)
-    public static int[] parseDate(String dateStr) throws InvalidDateTimeArrayException {
+    public static int[] parseDate (String dateStr) throws InvalidDateTimeArrayException {
 
         ErrorPackage parsedEP = parseInts(dateStr);
 
@@ -114,7 +115,7 @@ public class ParserUtil {
     }
 
     // Parse ints out of string
-    public static ErrorPackage parseInts(String parseThis) {
+    public static ErrorPackage parseInts (String parseThis) {
         char[] cArray = parseThis.toCharArray();
         ArrayList<Integer> output = new ArrayList<>();
         boolean lastInt = false;
@@ -151,7 +152,8 @@ public class ParserUtil {
         return outputEP;
     }
 
-    public static ErrorPackage parseNextInt(String parseThis) {
+    // Parse the first available integer in a string
+    public static ErrorPackage parseNextInt (String parseThis) {
         ErrorPackage handler = parseInts(parseThis);
 
         if (handler.hasError()) return handler;
@@ -166,8 +168,30 @@ public class ParserUtil {
         }
     }
 
-    public static boolean parseBool(String parseThis) {
+    // Parse boolean from a string
+    public static boolean parseBool (String parseThis) {
+        // Simple test
         if (parseThis.toLowerCase().equals("true")) return true;
+        // Test for positive integers in string
+        ErrorPackage handler = parseInts(parseThis);
+        if (handler.hasError()) return false;
+        if ((boolean)handler.getAux("singleInt")) if ((int)handler.getAux("intOut") > 0) return true;
         return false;
+    }
+
+    // Output a string from a byte in a specifically formatted way
+    public static String parseByteToString (byte[] parseThis) {
+        // Output string
+        String out = "";
+        for (int i = 0; i < parseThis.length; i++) {
+            out += parseThis[i];
+            if (i < parseThis.length - 1) out += " ]|[ ";
+        }
+        return out;
+    }
+
+    // Checks bytes against specifically formatted strings from above method
+    public static boolean checkByteAgainstString (byte[] checkThis, String parsedThis) {
+        return parsedThis.equals(parseByteToString(checkThis));
     }
 }

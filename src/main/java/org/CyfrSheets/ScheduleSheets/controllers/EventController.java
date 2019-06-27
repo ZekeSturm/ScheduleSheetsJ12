@@ -166,6 +166,7 @@ public class EventController {
             hTwo = yesError(e.getMessage());
         }
 
+        // Invalid event dta strings
         if (handler.hasError()) {
             model.addAttribute("baddta", true);
             model.addAttribute("title", "Create your new event!");
@@ -182,7 +183,7 @@ public class EventController {
             RegUser u = null;
 
             for (RegUser ru : regUserDao.findAll())
-                if (ru.getUID() == (int)request.getSession().getAttribute("userId")) u = ru;
+                if (ru.getID() == (int)request.getSession().getAttribute("userId")) u = ru;
 
             // Normally I'd check after the above, but it should be impossible to have a cookie and be missing that data
             // Similarly it should be impossible to delete an active user unless someone jimmy drop tables's me.
@@ -206,12 +207,16 @@ public class EventController {
 
             out.tempInit(tu);
 
+            baseEventDao.save(out);
+            staticEventDao.save(out);
+
             participantDao.save(tu);
             tempUserDao.save(tu);
         }
 
         baseEventDao.save(out);
         staticEventDao.save(out);
+
 
         return "redirect:/event/" + out.getId();
     }
@@ -344,7 +349,7 @@ public class EventController {
             // Handle registered user join
             int uID = (int)request.getSession().getAttribute("userId");
 
-            for (RegUser ru : regUserDao.findAll()) if (ru.getUID() == uID) p = ru;
+            for (RegUser ru : regUserDao.findAll()) if (ru.getID() == uID) p = ru;
 
             regUserDao.save((RegUser)p);
         } else {

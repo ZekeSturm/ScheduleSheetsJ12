@@ -5,6 +5,27 @@
 <body>
 <div th:replace="fragments :: page-header"></div>
 
+<form method="post">
+    <div clsas="form-group">
+        <label th:for="username">Name:</label>
+        <input type="text" name="username" />
+        <span th:if="${nametaken}" th:text="This username is unavailable!"></span>
+        <span th:if="${missingusername}" th:text="You must provide a username!"></span>
+        <br>
+        <label th:for="password">Password:</label>
+        <input type="password" name="password" />
+        <span th:if="${missingpass}" th:text="You must supply a password!"></span>
+        <br>
+        <label th:for="confirm">Confirm Password:</label>
+        <input type="password" name="confirm" />
+        <span th:if="${passmismatch}" th:text="Given passwords must match!"></span>
+        <br>
+        <label th:for="email">Email Address:</label>
+        <input type="email" name="email" />
+        <span th:if="${missingemail}" th:text="You must provide an email address!"></span>
+        <input type="submit" value="Create your account!" />
+    </div>
+</form>
 
 
 </body>
