@@ -83,10 +83,17 @@ public class LoginUtil {
         } else if (logCookieFound) break;
 
         if (logCookieFound) { // Return logged in - transfer data if transfer == true
+            // Cookie name format - uID + "checkbyte" + pID]
+            LoginPackage out;
 
-        } else { // Return a "false"/no-login LoginPackage. Empty constructor is failure-default.
-            return new LoginPackage();
-        }
+            if (transfer) {
+
+            } else {
+
+
+            }
+            return out;
+        } else return new LoginPackage(); // Return a "false"/no-login LoginPackage. Empty constructor is failure-default.
     }
 
     // Same as above - assumes transfer = true

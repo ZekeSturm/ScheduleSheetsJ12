@@ -9,6 +9,7 @@ public enum ClassCase {
     REGUSER ("regu"),
     TEMPUSER ("temu"),
     ERRORPACKAGE("erpk"),
+    HASH ("hash"),
 
     UNKNOWN ("uknw");
 

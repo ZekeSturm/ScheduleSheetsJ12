@@ -1,28 +1,40 @@
 package org.CyfrSheets.ScheduleSheets.models.utilities;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 public class LoginPackage {
 
-    private boolean logged;
+    private final boolean logged;
 
-    private boolean registered;
+    private final byte[] key;
 
-    private byte[] key;
+    private final HttpServletRequest request;
 
-    HttpServletRequest request;
-
-    HttpServletResponse response;
+    private final HttpServletResponse response;
 
     // TODO - Add other constructors here
-    public LoginPackage(boolean logged, HttpServletRequest request, HttpServletResponse response) { }
+
+    // Comprehensive constructor
+    public LoginPackage(boolean logged, byte[] key, HttpServletRequest request, HttpServletResponse response) {
+        this.logged = logged;
+        this.key = key;
+        this.request = request;
+        this.response = response;
+    }
 
     // Empty constructor - simplest delivery of "not logged in"
-    public LoginPackage() { logged = false; }
+    public LoginPackage() {
+        logged = false;
+        key = null;
+        request = null;
+        response = null;
+    }
 
     public boolean isLogged() { return logged; }
-    public boolean isRegistered() { return registered; }
+
+    public void passCookie(Cookie cookie) { response.addCookie(cookie); }
 
 
 }

@@ -147,7 +147,7 @@ public class UserController {
         // Unwrap password check
         if ((boolean)handler.getAux("ancil")) {
             // success - initiate session
-            ErrorPackage keyHandler = target.keyGen(password); // keyHandler should not be able to have an error at this stage
+            ErrorPackage keyHandler = target.keyGen(); // keyHandler should not be able to have an error at this stage
 
             request = userSessionInitReq(request, target, (byte[])keyHandler.getAux("sKey"));
             return "redirect:/user/" + target.getUID();

@@ -1,19 +1,16 @@
 package org.CyfrSheets.ScheduleSheets.models.users;
 
 import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidPasswordException;
-import org.CyfrSheets.ScheduleSheets.models.utilities.ClassCase;
 import org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
-import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassChecker.checkClass;
 
 @Entity
 @SequenceGenerator(name = "regseq", initialValue = 1, allocationSize = 2147483645)

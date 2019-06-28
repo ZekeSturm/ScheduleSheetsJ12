@@ -24,6 +24,8 @@ public class ClassChecker {
                 return TEMPUSER;
             case "errorpackage":
                 return ERRORPACKAGE;
+            case "byte[]":
+                return HASH;
 
             default:
                 return UNKNOWN;
