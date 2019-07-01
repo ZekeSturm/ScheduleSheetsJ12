@@ -11,6 +11,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
+import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
 
 @Entity
 @SequenceGenerator(name = "regseq", initialValue = 1, allocationSize = 2147483645)
@@ -92,6 +93,8 @@ public class RegUser extends Participant {
         for (int i = 0; i < hash.length ; i++) if (hash[i] != seshKey[i]) return false;
         return true;
     }
+
+    public boolean checkKey(String hashString) { return checkByteAgainstString(seshKey, hashString); }
 
     private void cSaltListInit() {
         if (cSLYN) return;

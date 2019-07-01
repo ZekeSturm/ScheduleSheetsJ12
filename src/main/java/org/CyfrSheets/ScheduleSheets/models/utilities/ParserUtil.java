@@ -118,60 +118,64 @@ public class ParserUtil {
 
     // Parse all ints out of string - Return w/ leftover non-int string fragments if stringReturn is true
     public static ErrorPackage parseInts (String parseThis, boolean stringReturn) {
-        char[] cArray = parseThis.toCharArray();
-        ArrayList<Integer> output = new ArrayList<>();
-        ArrayList<String> sOutput = new ArrayList<>();
-        boolean lastInt = false;
-        boolean lastChar = false;
-        int buffer = 0;
-        String sBuffer = "";
 
-        for (Character c : cArray) {
-            if (Character.isDigit(c)) {
-                if (lastInt) buffer *= 10;
-                else if (lastChar && stringReturn) {
-                    sOutput.add(sBuffer);
-                    lastChar = false;
-                    sBuffer = "";
-                }
-                buffer += Character.getNumericValue(c);
-                lastInt = true;
+        // Check for empty input
+        if (parseThis.isEmpty()) return yesError("Input string is empty!");
+
+
+        String subParse = parseThis;                        // Introduce substring to be parsed out so as not to
+                                                            // destroy input string
+        ErrorPackage out = yesError("placeholder");         // Initialize as if an error has occurred - use to check
+                                                            // for inputs
+        int lastIndex = parseThis.length() - 1;             // Last available index for input string
+        ArrayList<Integer> intArray = new ArrayList<>();    // Output int array
+        ArrayList<String> stringFrags = new ArrayList<>();  // Output string array. Only needed for stringReturn
+
+        // Iterate through parseThis w/ parseSingleInt - w/ retPos, reassign subParse to be the un-parsed substring.
+        // Will break w/ return handler when end is reached w/o int, or if last index is reached
+        while (true) {
+            ErrorPackage handler = parseSingleInt(subParse, true);
+
+            // No more ints in string
+            if (handler.hasError()) {
+                if (out.hasError()) { // If nothing was placed in out
+                    return handler;
+                } else if (stringReturn) stringFrags.add(subParse);
+                return out;
+            }
+
+            // Properly initialize out if it hasn't been and add int to array
+            if (out.hasError()) out = noError();
+
+            intArray.add((int)handler.getAux("intOut"));
+            int i = (int)handler.getAux("lastIndex");
+
+            if (stringReturn) stringFrags.add((String)handler.getAux("priorString"));
+
+            // Check if there will be further characters to parse - if so, continue
+            if (i < lastIndex) {
+                subParse = subParse.substring(i + 1);
                 continue;
             }
-            output.add(buffer);
-            lastInt = false;
-            buffer = 0;
-            if (stringReturn) {
-                sBuffer += c;
-                lastChar = true;
-            }
+
+            // Finalize output
+            out.addAux("arrayOut", intArray);
+            out.addAux("stringFrags", stringFrags);
+
+            return out;
         }
-
-
-        if (lastInt) output.add(buffer);
-        if (lastChar) sOutput.add(sBuffer); // Can leave out stringReturn here - lastChar should not be true if that's false
-        if (!lastInt && buffer == 0 && output.size() == 0) return yesError("No Integers In String");
-
-        ErrorPackage outputEP = noError();
-        if (stringReturn) outputEP.addAux("stringFrags", sOutput);
-
-        if (output.size() == 1) {
-            outputEP.addAux("intOut", output.get(0));
-            outputEP.addAux("singleInt", true);
-        }
-        else {
-            outputEP.addAux("arrayOut", output);
-            outputEP.addAux("singleInt", false);
-        }
-
-        return outputEP;
     }
 
     // Parse all integers out of string - does not return string fragments
     public static ErrorPackage parseInts(String parseThis) { return parseInts(parseThis, false); }
 
-    // Parse single integer out of string, return the rest of the string as fragments
-    public static ErrorPackage parseSingleInt (String parseThis) {
+    // Parse single integer out of string, return the rest of the string as fragments.
+    // Returns only string before int when retPos is true.
+    // The purpose of retPos is to shorten execution length over multiple instances - namely w/in parseInts
+    public static ErrorPackage parseSingleInt (String parseThis, boolean retPos) {
+        // Check for empty input
+        if (parseThis.isEmpty()) return yesError("Input string is empty!");
+
         char[] cArray = parseThis.toCharArray();
         ArrayList<String> sOutput = new ArrayList<>();
         boolean lastInt = false;
@@ -182,18 +186,27 @@ public class ParserUtil {
 
         ErrorPackage out;
 
-        for (Character c : cArray) {
+        for (int i = 0; i < cArray.length; i++) {
+            char c = cArray[i];
             if (Character.isDigit(c) && !intFound) {
                 if (lastInt) buffer *= 10;
                 else if (lastChar) {
-                    sOutput.add(sBuffer);
                     lastChar = false;
-                    sBuffer = ""; }
+                    if (!retPos) {
+                    sOutput.add(sBuffer);
+                    sBuffer = ""; }}
                 buffer += Character.getNumericValue(c);
                 lastInt = true;
                 continue;
             }
             if (lastInt) {
+                // return index if retPos w/ initial substring
+                if (retPos) {
+                    out = noError();
+                    out.addAux("intOut", buffer);
+                    out.addAux("lastIndex", i);
+                    out.addAux("priorString", sBuffer);
+                }
                 lastInt = false;
                 intFound = true;
             } else {
@@ -210,28 +223,8 @@ public class ParserUtil {
         }
     }
 
-
-    // Parse the first available integer in a string - return string leftovers in an
-    // array w/in EP datamap if stringReturn is true
-    public static ErrorPackage parseNextInt (String parseThis, boolean stringReturn) {
-        ErrorPackage handler = parseInts(parseThis, stringReturn);
-        if (handler.hasError()) return handler;
-
-        ErrorPackage out = noError();
-
-        if (checkClass(handler.getAux("singleInt")) == BOOLEAN && (Boolean)handler.getAux("singleInt"))
-            out.addAux("intOut", handler.getAux("intOut"));
-        else out.addAux("intOut", ((ArrayList)handler.getAux("arrayOut")).get(0));
-
-        if (stringReturn) out.addAux("stringFrags", handler.getAux("stringFrags"));
-
-        return out;
-    }
-
-    // Parse the first available integer in a string - Does not return string fragments
-    public static ErrorPackage parseNextInt (String parseThis) {
-        return parseNextInt(parseThis, false);
-    }
+    // Quick Implementation - assumes retPos
+    public static ErrorPackage parseSingleInt(String parseThis) { return parseSingleInt(parseThis, true); }
 
     // Parse boolean from a string
     public static boolean parseBool (String parseThis) {

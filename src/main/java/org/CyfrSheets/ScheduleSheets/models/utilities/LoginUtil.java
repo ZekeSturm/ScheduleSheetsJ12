@@ -5,19 +5,21 @@ import org.CyfrSheets.ScheduleSheets.models.data.RegUserDao;
 import org.CyfrSheets.ScheduleSheets.models.users.Participant;
 import org.CyfrSheets.ScheduleSheets.models.users.RegUser;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.CyfrSheets.ScheduleSheets.models.utilities.LoginPackage.*;
+import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
+import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassCase.*;
+import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassChecker.*;
 
 @Component
 public class LoginUtil {
@@ -31,7 +33,7 @@ public class LoginUtil {
     private RegUserDao ruD;
     private static RegUserDao regUserDao;
 
-    private static HashMap<Integer, Integer> idMap = new HashMap<>();
+    private static HashMap<Integer, Integer> idMap = new HashMap<>(); // uID/pID pairing map - uID key, pID value
 
     // Constructor literally only used for the below. Should probably make it private. - Did it, past me. - current me
     private LoginUtil () { }
@@ -44,20 +46,38 @@ public class LoginUtil {
     }
 
     // Handle login
-    public static LoginPackage handleLogin (HttpServletRequest request, HttpServletResponse response) {
+    // TODO - Implement. Pass keyGen output to session along w/ uID & make cookie w/ relevant info
+    // (REMOVE THIS WITH ABOVE TO DO) Cookie Format: (uID + "checkbyte" + pID, parsed string of keyGen byte)
+    public static LoginPackage handleLogin (Participant p, HttpServletRequest request, HttpServletResponse response) {
+
+        // Check for registration - TODO - Implement TempUser signin on a per-event session basis later
+        if (p.registered()) {
+            RegUser u = (RegUser)p;
+            // Pair IDs
+            if(idPairing(u.getID(), u.getUID()));
+            else return new LoginPackage(); // If it somehow bungles return this to be safe
+
+            ErrorPackage handler = u.keyGen();
+
+            if (handler.hasError()) return new LoginPackage();
 
 
+
+        } else return new LoginPackage(); // Return default failure until above to-do is done
+
+        // Junk Return - remove when implemented
+        return new LoginPackage();
     }
 
     // Pair UIDs with their Participant ID - returns false if failed
-    public static boolean idPairing (int id, int uID) {
+    public static boolean idPairing (int pID, int uID) {
         // Check for existence of user w/ id
-        Optional<RegUser> o = regUserDao.findById(id);
+        Optional<RegUser> o = regUserDao.findById(pID);
         if (o.isPresent()) {
             RegUser u = o.get();
             // Confirm UID and ID are paired
-            if (u.getID() == id && u.getUID() == uID) {
-                idMap.put(uID, id);
+            if (u.getID() == pID && u.getUID() == uID) {
+                idMap.put(uID, pID);
                 return true;
             }
         }
@@ -85,6 +105,31 @@ public class LoginUtil {
         if (logCookieFound) { // Return logged in - transfer data if transfer == true
             // Cookie name format - uID + "checkbyte" + pID]
             LoginPackage out;
+            ErrorPackage handler = parseInts(logCookie.getName());
+
+            if (handler.hasError()) return new LoginPackage(); // Empty failure default - no id info found
+
+            // Extract arraylist - check to ensure the right amount of ints were found
+            ArrayList<Integer> ids = (ArrayList<Integer>)handler.getAux("arrayOut");
+            if (ids.size() < 2 || ids.size() > 2) return new LoginPackage();
+
+            // Extract IDs
+            int uID = ids.get(0);
+            int pID = ids.get(1);
+
+            // Make sure uID and pID match
+            if (idMap.get(uID) != pID) return new LoginPackage();
+
+            // Make sure user exists - pull user session key, check against cookie key & session key
+            Optional<RegUser> possibleUser = regUserDao.findById(pID);
+            if (!possibleUser.isPresent()) return new LoginPackage();
+
+            RegUser ru = possibleUser.get();
+
+            if (!ru.checkKey(logCookie.getValue())) return new LoginPackage();
+
+
+
 
             if (transfer) {
 
@@ -92,8 +137,12 @@ public class LoginUtil {
 
 
             }
-            return out;
+            // return out;
+            // Above line commented out to avoid error throwing - un-comment when implemented
         } else return new LoginPackage(); // Return a "false"/no-login LoginPackage. Empty constructor is failure-default.
+
+        // Junk return. Remove when implemented
+        return new LoginPackage();
     }
 
     // Same as above - assumes transfer = true

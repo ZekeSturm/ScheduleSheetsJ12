@@ -57,7 +57,7 @@ public class UserController {
 
         model.addAttribute("sessionId", session.getId());
 
-        ErrorPackage handler = parseNextInt(uIDstr);
+        ErrorPackage handler = parseSingleInt(uIDstr, true);
 
         // Is the path variable actually an integer?
         if (handler.hasError()) {

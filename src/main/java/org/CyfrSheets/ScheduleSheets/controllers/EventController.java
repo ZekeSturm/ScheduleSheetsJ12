@@ -279,7 +279,7 @@ public class EventController {
 
         if (!logged) session = clearUser(session);
 
-        ErrorPackage handler = getEvent(model, parseNextInt(eventID));
+        ErrorPackage handler = getEvent(model, parseSingleInt(eventID));
 
         if (handler.hasError()) {
             model.addAttribute("missing", true);
@@ -310,7 +310,7 @@ public class EventController {
 
         } else session = clearUser(session);
 
-        ErrorPackage handler = getEvent(model, parseNextInt(eventID));
+        ErrorPackage handler = getEvent(model, parseSingleInt(eventID));
 
         if (handler.hasError()) {
             model.addAttribute("missing", true);
@@ -333,7 +333,7 @@ public class EventController {
 
         if (!logged) request = clearUserReq(request);
 
-        ErrorPackage handler = getEvent(model, parseNextInt(eventID));
+        ErrorPackage handler = getEvent(model, parseSingleInt(eventID));
 
         model.addAttribute("missing", true);
 
