@@ -97,10 +97,12 @@ public class TestController {
                 Cookie logged = new Cookie("Login", "true");
                 logged.setMaxAge(600);
                 response.addCookie(logged);
-            }
-            for (Cookie c : cookies) if (c.getName().equals("Login") && c.getValue().equals("true")) {
-                c.setMaxAge(c.getMaxAge() + 600);
-                break;
+            } else {
+                for (Cookie c : cookies)
+                    if (c.getName().equals("Login") && c.getValue().equals("true")) {
+                        c.setMaxAge(c.getMaxAge() + 600);
+                        break;
+                    }
             }
         } else {
             session.invalidate();

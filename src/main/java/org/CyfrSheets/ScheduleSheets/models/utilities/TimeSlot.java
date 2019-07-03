@@ -34,6 +34,7 @@ public class TimeSlot {
             if (startSuccess) eMsg += "endTime input - ";
             else eMsg += "startTime input - ";
             eMsg += e.getMessage();
+            throw new BadTimeSlotException(eMsg);
         }
     }
 }

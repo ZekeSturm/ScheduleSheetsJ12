@@ -5,8 +5,6 @@ import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidDateTimeArrayExcep
 import java.util.ArrayList;
 import java.util.Calendar;
 
-import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassCase.*;
-import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassChecker.checkClass;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 
 // Collection of user-created parsing methods
@@ -188,7 +186,7 @@ public class ParserUtil {
 
         for (int i = 0; i < cArray.length; i++) {
             char c = cArray[i];
-            if (Character.isDigit(c) && !intFound) {
+            if ((Character.isDigit(c) || c == '-') && !intFound) {
                 if (lastInt) buffer *= 10;
                 else if (lastChar) {
                     lastChar = false;
@@ -214,7 +212,7 @@ public class ParserUtil {
                 lastChar = true;
             }
         }
-        if (!intFound) return yesError("No integers in string - " + parseThis);
+        if (!intFound && !lastInt) return yesError("No integers in string - " + parseThis);
         else {
             out = noError();
             out.addAux("intOut", buffer);
@@ -226,7 +224,7 @@ public class ParserUtil {
     // Quick Implementation - assumes retPos
     public static ErrorPackage parseSingleInt(String parseThis) { return parseSingleInt(parseThis, true); }
 
-    // Parse boolean from a string
+    // Parse boolean from a string - TODO - Boolean has this method already. Scrap this neatly when possible
     public static boolean parseBool (String parseThis) {
         // Simple test
         if (parseThis.toLowerCase().equals("true")) return true;
@@ -242,9 +240,60 @@ public class ParserUtil {
         // Output string
         String out = "";
         for (int i = 0; i < parseThis.length; i++) {
-            out += parseThis[i];
+            out += Byte.toString(parseThis[i]);
             if (i < parseThis.length - 1) out += " ]|[ ";
         }
+        return out;
+    }
+
+    // Reverse the above
+    public static byte[] parseByteFromString (String parseThis) {
+        // Split string into array to parse
+        char[] chArray = parseThis.toCharArray();
+
+        // Get # of bytes in string by "border proxy" - count ], |, and [
+        // If numbers are not equal this is not a valid string
+        int endCount = 0; // ] count
+        int midCount = 0; // | count
+        int startCount = 0; // [ count
+        for (char c : chArray) {
+            if (c == ']') endCount++;
+            if (c == '|') midCount++;
+            if (c == '[') startCount++;
+        }
+        if (endCount != midCount || midCount != startCount || startCount != endCount) return new byte[] {-128, 127, -127, -128, 127, 0};
+
+        byte[] out = new byte[endCount + 1]; // initialize output array w/ one more spot than there are dividers
+
+        ArrayList<Byte> outAL = new ArrayList<>();
+        boolean primed = true;      // Boolean to check for ] (unprime, false) and [ (prime, true) to separate out bytes
+        String buffer = "";
+
+        int i = 0; // Byte index counter
+
+        for (char c: chArray) {
+
+            switch (c) {
+                case ' ':
+                    continue;
+                case ']':
+                    primed = false;
+                    try {
+                        out[i] = Byte.valueOf(buffer);
+                        i++;
+                        buffer = "";
+                        continue;
+                    } catch (NumberFormatException e) { return new byte[] {-128, 127, -127, -128, 127, 0}; }
+                case '[':
+                    primed = true;
+                    continue;
+                default:
+                    if (primed) buffer += c;
+            }
+        }
+        // add last byte
+        out[i] = Byte.valueOf(buffer);
+
         return out;
     }
 

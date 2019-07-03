@@ -2,6 +2,12 @@ package org.CyfrSheets.ScheduleSheets.models.utilities;
 
 public class ExtraUtil {
 
+    public static boolean checkByteEquals(byte[] a, byte[] b) {
+        if (a.length != b.length) return false;
+        for (int i = 0; i < a.length; i++) if (a[i] != b[i]) return false;
+        return true;
+    }
+
     public static byte[] byteConcat(byte[] a, byte[] b) {
         int sub = 0;
         int len = a.length + b.length;

@@ -14,14 +14,15 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.util.Calendar;
 import java.util.Enumeration;
 import java.util.HashMap;
 
-import static org.CyfrSheets.ScheduleSheets.controllers.UserController.*;
 import static org.CyfrSheets.ScheduleSheets.models.events.StaticEvent.seInit;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
+import static org.CyfrSheets.ScheduleSheets.models.utilities.LoginUtil.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
 
 @Controller
@@ -46,27 +47,27 @@ public class EventController {
     RegUserDao regUserDao;
 
     @GetMapping(value = "")
-    public String eventHub(Model model, HttpSession session) {
+    public String eventHub(Model model, HttpServletRequest request, HttpServletResponse response) {
 
-        boolean logged = checkLog(session);
+        boolean logged = checkLog(request, response).isLogged();
 
-        if (!logged) session = clearUser(session);
+        if (!logged) handleLogoff(request, response);
 
         model.addAttribute("title", "Events");
-        model.addAttribute("sessionId", session.getId());
 
         return "event/index";
     }
 
     @GetMapping(value = "new/static")
-    public String newStaticEvent(Model model, HttpSession session) {
+    public String newStaticEvent(Model model, HttpServletRequest request, HttpServletResponse response) {
 
-        boolean logged = checkLog(session);
+        HttpSession session = request.getSession();
+
+        boolean logged = checkLog(request, response).isLogged();
         boolean tLogged = checkTLog(session);
 
-        if (!logged) session = clearUser(session);
+        if (!logged) handleLogoff(request, response);
 
-        model.addAttribute("sessionId", session.getId());
         model.addAttribute("logged", logged);
         model.addAttribute("tLogged", tLogged);
 
@@ -76,42 +77,17 @@ public class EventController {
         return "event/new-static";
     }
 
-
-    // Old newStaticEvent method body
-    /**
-     if (!model.containsAttribute("logged")) {
-     model.addAttribute("logged", false);
-     }
-     if ((boolean)model.getAttribute("logged")) {
-     model.addAttribute("title", "Create your new event!");
-     return "event/new-static";
-     } else {
-     return "redirect:static/temp";
-     }
-     */
-
-    // No use right now. Will fix this later. Need MVP now.
-    /**
-    @PostMapping(value = "new/static/log")
-    public String logStaticEvent(Model model, @RequestParam("cName") String cName,
-                                 @RequestParam("cPass") String cPass) {
-        model.addAttribute("cName", cName);
-        model.addAttribute("cPass", cPass);
-        model.addAttribute("title", "Create your new event!");
-
-        return "event/new-static";
-    } */
-
     // TODO - Package all this crap in a form
 
     @PostMapping(value = "new/static")
-    public String newStaticEvent(Model model, HttpServletRequest request, @RequestParam("eventName") String name,
-                                 @RequestParam("eventDesc") String desc, @RequestParam("startDate") String startDate,
-                                 @RequestParam("startTime") String startTime, @RequestParam("endDate") String endDate,
-                                 @RequestParam("endTime") String endTime, @RequestParam("cName") String cName,
-                                 @RequestParam("cPass") String cPass, @RequestParam("confirm") String confirm) {
+    public String newStaticEvent(Model model, HttpServletRequest request, HttpServletResponse response,
+                                 @RequestParam("eventName") String name, @RequestParam("eventDesc") String desc,
+                                 @RequestParam("startDate") String startDate, @RequestParam("startTime")String startTime,
+                                 @RequestParam("endDate") String endDate, @RequestParam("endTime") String endTime,
+                                 @RequestParam("cName") String cName, @RequestParam("cPass") String cPass,
+                                 @RequestParam("confirm") String confirm) {
 
-        boolean logged = checkLog(request.getSession());
+        boolean logged = checkLog(request, response).isLogged();
 
         boolean passmatch;
         if (logged) {
@@ -119,7 +95,7 @@ public class EventController {
             passmatch = true;
         } else {
             // Briefly hijack first logged check to clear user data
-            request = clearUserReq(request);
+            handleLogoff(request, response);
 
             if (cPass.equals(confirm)) {
                 passmatch = true;
@@ -228,7 +204,7 @@ public class EventController {
     @GetMapping(value="new/static/temp")
     public String newStaticTempCreator(Model model, HttpSession session) {
 
-        boolean logged = checkLog(session);
+        boolean logged = false; //checkLog(session);
         boolean tLogged = checkTLog(session);
 
         model.addAttribute("logged", logged);
@@ -248,7 +224,7 @@ public class EventController {
     public String newTempCreator(Model model, HttpServletRequest request, @RequestParam("username") String username,
                                  @RequestParam("password") String password, @RequestParam("confirm") String confirm) {
 
-        boolean logged = checkLog(request.getSession());
+        boolean logged = false; //checkLog(request.getSession());
         boolean tLogged = checkTLog(request.getSession());
 
         if (logged || tLogged) return "redirect:/event/new/static";
@@ -273,7 +249,7 @@ public class EventController {
 
         model.addAttribute("sessionId", session.getId());
 
-        boolean logged = checkLog(session);
+        boolean logged = false; //checkLog(session);
 
         model.addAttribute("logged", logged);
 
@@ -297,18 +273,16 @@ public class EventController {
     }
 
     @GetMapping(value="{id}/join")
-    public String addUser(Model model, HttpSession session, @PathVariable("id") String eventID) {
+    public String addUser(Model model, HttpServletRequest request, HttpServletResponse response, @PathVariable("id") String eventID) {
 
-        model.addAttribute("sessionId", session);
-
-        boolean logged = checkLog(session);
+        boolean logged = checkLog(request, response).isLogged();
 
         model.addAttribute("logged", logged);
 
         if (logged) {
             // handle user join
 
-        } else session = clearUser(session);
+        } else handleLogoff(request, response);
 
         ErrorPackage handler = getEvent(model, parseSingleInt(eventID));
 
@@ -325,21 +299,19 @@ public class EventController {
     }
 
     @PostMapping(value="{id}/join")
-    public String addUser(Model model, HttpServletRequest request, @PathVariable("id") String eventID,
+    public String addUser(Model model, HttpServletRequest request, HttpServletResponse response, @PathVariable("id") String eventID,
                           @RequestParam("username") String username, @RequestParam("password") String password,
                           @RequestParam("confirm") String confirm) {
 
-        boolean logged = checkLog(request.getSession());
+        boolean logged = checkLog(request, response).isLogged();
 
-        if (!logged) request = clearUserReq(request);
+        if (!logged) handleLogoff(request, response);
 
         ErrorPackage handler = getEvent(model, parseSingleInt(eventID));
 
-        model.addAttribute("missing", true);
+        model.addAttribute("missing", handler.hasError());
 
         if (handler.hasError()) return "event/static-event";
-
-        model.addAttribute("missing", false);
 
         BaseEvent targetEvent = (BaseEvent)handler.getAux("event");
 

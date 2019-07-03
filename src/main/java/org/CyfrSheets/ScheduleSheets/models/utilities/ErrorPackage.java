@@ -54,6 +54,12 @@ public class ErrorPackage {
         return false;
     }
 
+    public boolean getAncil() {
+        if (dataMap.containsKey("ancil") && checkClass(dataMap.get("ancil")) == BOOLEAN)
+            return (Boolean)dataMap.get("ancil");
+        return false;
+    }
+
     public String getAuxMsg(int auxNum) {
         if (dataMap.containsKey("auxMsg" + auxNum) && checkClass(dataMap.get("auxMsg" + auxNum)) == STRING)
             return (String)dataMap.get("auxMsg" + auxNum);

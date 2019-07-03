@@ -24,7 +24,8 @@ public class LoginPackage {
         this.response = response;
     }
 
-    // Empty constructor - simplest delivery of "not logged in"
+    // Empty constructor - simplest delivery of "not logged in" - NOTE: When using this, remember to manually kill
+    // any existing cookies
     public LoginPackage() {
         logged = false;
         key = null;
@@ -32,8 +33,18 @@ public class LoginPackage {
         response = null;
     }
 
+    // "Constructor" initializes + cookie - Unsure if necessary for now
+    public LoginPackage plateCookie(boolean logged, byte[] key, HttpServletRequest request, HttpServletResponse response, Cookie cookie) {
+        LoginPackage out = new LoginPackage(logged, key, request, response);
+        out.passCookie(cookie);
+        return out;
+    }
+
     public boolean isLogged() { return logged; }
 
+    public boolean badPackage() { return (logged == false && key == null && request == null && response == null); }
+
+    // May be unnecessary
     public void passCookie(Cookie cookie) { response.addCookie(cookie); }
 
 

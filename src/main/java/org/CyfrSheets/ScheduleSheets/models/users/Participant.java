@@ -88,8 +88,8 @@ public abstract class Participant {
         // Check current password for match first
         ErrorPackage eP = checkPassword(pass);
         // Check for errors and successful pass match
-        if (!eP.hasError() && (Boolean)eP.getAux("ancil")) return changePassword(newPass);
-        if (!eP.hasError() && !(Boolean)eP.getAux("ancil")) eP.setMessage("Passwords Do Not Match!");
+        if (!eP.hasError() && eP.getAncil()) return changePassword(newPass);
+        if (!eP.hasError() && !eP.getAncil()) eP.setMessage("Passwords Do Not Match!");
         return eP;
     }
 

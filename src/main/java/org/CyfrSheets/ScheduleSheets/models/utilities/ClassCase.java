@@ -16,6 +16,7 @@ public enum ClassCase {
     ERRORPACKAGE("erpk", ErrorPackage.class, false),
     HASH ("hash", byte[].class, true),
 
+    OBJECT ("object", Object.class, false),
     UNKNOWN ("uknw", null, false);
 
     public final String indicator;

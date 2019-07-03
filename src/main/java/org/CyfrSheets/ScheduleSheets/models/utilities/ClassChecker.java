@@ -1,7 +1,6 @@
 package org.CyfrSheets.ScheduleSheets.models.utilities;
 
 import java.lang.reflect.Array;
-import java.util.AbstractMap;
 
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassCase.*;
 
@@ -33,24 +32,40 @@ public class ClassChecker {
             case "byte[]":
                 return HASH;
 
+            case "object":
+                return OBJECT;
             default:
                 return UNKNOWN;
         }
     }
 
-    // Compare two object classes - save input to output if they are the same (excluding the UNKNOWN enum)
-    public static boolean checkClassThenSet(Object input, Object output) {
-        if (sameSansUKNWN(input, output)) {
-            ClassCase inCase = checkClass(input);
-            if (inCase.isArray) return cloneArray(input, output, inCase);
-            output = input;
+    // Compare two object classes - save input to output if they are the same (excluding the UNKNOWN enum).
+    // Input and Output must be passed as an array to preserve saved information - retrieve from this array after call
+    public static boolean checkClassThenSet(Object[] inOut) {
+        // If the input and output share the same class...
+        if (sameSansUKNWN(inOut[0], inOut[1])) {
+            ClassCase inCase = checkClass(inOut[0]);
+            // In case someone passes an array to this one instead
+            if (inCase.isArray) return cloneArray(inOut[0], inOut[1]);
+            Array.set(inOut[1], 0, inOut[1]);
             return true;
         } else return false;
     }
 
+    // Compare the array types then clone input to output. Should be called instead of the above if one knows an object
+    // is an array
+    public static boolean checkArrayClassThenSet(Object input, Object output) {
+        if (!sameSansUKNWN(input, output)) return false;
+        if (!input.getClass().isArray() || !output.getClass().isArray()) return false;
+        return cloneArray(input, output);
+    }
+
+    // Compare two object classes
+    public static boolean compareClasses(Object a, Object b) { return sameSansUKNWN(a, b); }
+
     // Clone one array to the other from generic object input.
-    private static boolean cloneArray(Object input, Object output, ClassCase sharedCase) {
-        // Insure input/output are actually arrays
+    private static boolean cloneArray(Object input, Object output) {
+        // Ensure input/output are actually arrays
         if (!input.getClass().isArray() || !output.getClass().isArray()) return false;
 
         // Get lengths of arrays

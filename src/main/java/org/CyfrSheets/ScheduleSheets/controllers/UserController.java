@@ -6,14 +6,16 @@ import org.CyfrSheets.ScheduleSheets.models.data.RegUserDao;
 import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidPasswordException;
 import org.CyfrSheets.ScheduleSheets.models.users.RegUser;
 import org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage;
+import org.CyfrSheets.ScheduleSheets.models.utilities.LoginPackage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.*;
-import java.util.Enumeration;
 
+import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassChecker.checkClassThenSet;
+import static org.CyfrSheets.ScheduleSheets.models.utilities.LoginUtil.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
 
 @Controller
@@ -29,34 +31,34 @@ public class UserController {
     @Autowired
     private BaseEventDao baseEventDao;
 
-    @GetMapping(value = { "", "/" })
-    public String index(Model model, HttpSession session) {
+    @GetMapping(value = {"", "/"})
+    public String index(Model model, HttpServletRequest request, HttpServletResponse response) {
 
-        model.addAttribute("sessionId", session.getId());
+        HttpSession session = request.getSession();
 
-        boolean logged = checkLog(session);
+        LoginPackage lP = checkLog(request, response);
+
+        boolean logged = lP.isLogged();
 
         model.addAttribute("logged", logged);
 
         if (logged) {
             // fetch user ID from session
-            int uID = (int)session.getAttribute("userId");
-            String username = (String)session.getAttribute("userName");
-            model.addAttribute("title", username + "'s proflie");
-            return "redirect:" + uID;
+            int uID = (int) session.getAttribute("userId");
+            model.addAttribute("title", "Your profile");
+            return "redirect:user/profile/" + uID;
         } else {
             model.addAttribute("title", "Register a new account");
-            session = clearUser(session);
-            return "redirect:register";
+            handleLogoff(request, response);
+            return "redirect:user/register";
         }
 
     }
 
-    @GetMapping(value="{uid}")
-    public String profile(Model model, HttpSession session, @PathVariable("uid") String uIDstr) {
+    @GetMapping(value = "/profile/{uid}")
+    public String profile(Model model, HttpServletRequest request, HttpServletResponse response, @PathVariable("uid") String uIDstr) {
 
-        model.addAttribute("sessionId", session.getId());
-
+        // Pull int out of uid string
         ErrorPackage handler = parseSingleInt(uIDstr, true);
 
         // Is the path variable actually an integer?
@@ -65,13 +67,26 @@ public class UserController {
             return "user/profile";
         }
 
-        int uID = (int)handler.getAux("intOut");
+        // int uID = (int) handler.getAux("intOut"); - Old cast method
+        // New error check method below
+        int uID = -2147483648;
 
-        boolean logged = checkLog(session);
+        Object[] inOut = {handler.getAux("intOut"), uID};
+
+        if (checkClassThenSet(inOut));
+
+        else {
+            model.addAttribute("genericerror", true);
+            return "user/profile";
+        }
+
+        uID = (int)inOut[1];
+
+        boolean logged = checkLog(request, response).isLogged();
 
         model.addAttribute("logged", logged);
 
-        RegUser u = regUserDao.findById(uIDtopID(uID)).get();
+        RegUser u = findUserByUID(uID);
 
         // Is there a user with this ID?
         if (u == null) {
@@ -97,11 +112,11 @@ public class UserController {
 
         model.addAttribute("sessionId", session.getId());
 
-        boolean logged = checkLog(session);
+        boolean logged = false; //checkLog(session);
 
         if (logged) {
             // redirect to user profile
-            int uID = (int)session.getAttribute("userId");
+            int uID = (int) session.getAttribute("userId");
             return "redirect:/user/" + uID;
         } else {
             // To the login page
@@ -111,16 +126,17 @@ public class UserController {
     }
 
     @PostMapping(value = "login")
-    public String login(Model model, HttpServletRequest request, @RequestParam("username") String username, @RequestParam("password") String password) {
+    public String login(Model model, HttpServletRequest request, HttpServletResponse response, @RequestParam("username") String username, @RequestParam("password") String password) {
 
         // Check for being somehow already logged in
-        boolean logged = checkLog(request.getSession());
+        LoginPackage lP = checkLog(request, response);
+        boolean logged = lP.isLogged();
 
         if (logged) {
             // redirect to user profile
-            int uID = (int)request.getSession().getAttribute("userId");
+            int uID = (int) request.getSession().getAttribute("userId");
             return "redirect:/user/" + uID;
-        } else request = clearUserReq(request); // cautionary data clear
+        } else handleLogoff(request, response); // cautionary data clear
 
         RegUser target = null;
 
@@ -135,39 +151,29 @@ public class UserController {
             return "redirect:";
         }
 
-        // Password check
-        ErrorPackage handler = target.checkPassword(password);
+        // Handle login
+        LoginPackage logPack = handleLoginSecurity(target, password, request, response);
 
-        // Handle inconceivable no such algorithm exceptions
-        if (handler.hasError()) {
-            model.addAttribute("genericerror", true);
-            return "redirect:";
-        }
-
-        // Unwrap password check
-        if ((boolean)handler.getAux("ancil")) {
-            // success - initiate session
-            ErrorPackage keyHandler = target.keyGen(); // keyHandler should not be able to have an error at this stage
-
-            request = userSessionInitReq(request, target, (byte[])keyHandler.getAux("sKey"));
-            return "redirect:/user/" + target.getUID();
-
-        } else {
-            // failure - back you go
+        // Unwrap login check/package
+        if (logPack.badPackage() || !logPack.isLogged()) {
+            // Failure - Back you go
             model.addAttribute("invaliduserpass", true);
             model.addAttribute("title", "Log In!");
             return "redirect:";
         }
+        // Otherwise, success - session should be mostly initiated already by LoginUtil
+        return "redirect:/user/" + target.getUID();
     }
 
     @GetMapping(value = "logoff")
-    public String logOff(Model model, HttpSession session) {
+    public String logOff(Model model, HttpServletRequest request, HttpServletResponse response) {
+        // Fetch session
+        HttpSession session = request.getSession();
 
-        boolean logged = checkLog(session);
+        boolean logged = checkLog(request, response).isLogged();
 
         if (!logged) return "redirect:/user";
 
-        model.addAttribute("sessionId", session.getId());
         model.addAttribute("userId", session.getAttribute("userId"));
         model.addAttribute("title", "Log Off");
 
@@ -176,45 +182,45 @@ public class UserController {
 
     // Only called if submit post button is pressed. get button should redirect to user profile
     @PostMapping(value = "logoff")
-    public String logOff(Model model, HttpServletRequest request) {
+    public String logOff(HttpServletRequest request, HttpServletResponse response) {
 
-        request = clearUserReq(request);
+        handleLogoff(request, response);
         return "redirect:/";
     }
 
     @GetMapping(value = "register")
-    public String register(Model model, HttpSession session) {
+    public String register(Model model, HttpServletRequest request, HttpServletResponse response) {
 
-        model.addAttribute("sessionId", session.getId());
+        // Fetch session
+        HttpSession session = request.getSession();
 
-        boolean logged = checkLog(session);
+        boolean logged = false; //checkLog(session);
 
         if (logged) {
             // redirect to user profile
-            int uID = (int)session.getAttribute("userId");
+            int uID = (int) session.getAttribute("userId");
             return "redirect:/user/" + uID;
         } else {
             // Create new user
             model.addAttribute("title", "Register a new account");
-            session = clearUser(session);
+            handleLogoff(request, response);
             return "user/register";
         }
     }
 
     @PostMapping(value = "register")
-    public String register(Model model, HttpServletRequest request, @RequestParam("username") String username,
+    public String register(Model model, HttpServletRequest request, HttpServletResponse response, @RequestParam("username") String username,
                            @RequestParam("password") String password, @RequestParam("confirm") String confirm,
                            @RequestParam("email") String email) {
 
-        // Input error checking first
-        boolean logged = checkLog(request.getSession());
-
         // Check if already logged in
+        boolean logged = checkLog(request, response).isLogged();
+
         if (logged) {
             // redirect to user profile
-            int uID = (int)request.getSession().getAttribute("userId");
+            int uID = (int) request.getSession().getAttribute("userId");
             return "redirect:/user/" + uID;
-        } else request = clearUserReq(request); // Clear user data just in case
+        } else handleLogoff(request, response); // Clear user data just in case
 
         // Check for username
         if (username.isEmpty()) {
@@ -241,7 +247,7 @@ public class UserController {
         }
 
         // Check if username or email is already taken
-        for (RegUser u: regUserDao.findAll()) {
+        for (RegUser u : regUserDao.findAll()) {
             if (u.getUsername().equals(username)) {
                 model.addAttribute("nametaken", true);
                 return "redirect:/user/register";
@@ -259,97 +265,15 @@ public class UserController {
             regUserDao.save(newU);
             participantDao.save(newU);
 
-            ErrorPackage handler = newU.keyGen(); // TODO - Use the key from this for authentication across app
-
-            if (handler.hasError()) {
-                if (handler.getMessage().equals("Password Mismatch")) {
-                    model.addAttribute("passmismatch", true);
-                    return "redirect:/user/register";
-                }
-                model.addAttribute("genericerror", true);
-                return "redirect:/user/register";
-            }
-
-            request = userSessionInitReq(request, newU, (byte[])handler.getAux("sKey"));
+            handleLoginSecurity(newU, password, request, response);
 
             return "redirect:/user/" + newU.getID();
         } catch (InvalidPasswordException e) {
             model.addAttribute("passmismatch", true);
             // Clear user data for security
-            request = clearUserReq(request);
+            handleLogoff(request, response);
             return "redirect:/user/register";
         }
     }
 
-    // Use anytime login status is relevant... so likely on every page that has a navbar
-    public static boolean checkLog(HttpSession session) {
-        Enumeration<String> sesNameEnum = session.getAttributeNames();
-        while (sesNameEnum.hasMoreElements()) if (sesNameEnum.nextElement().equals("userId")) return true;
-        return false;
-    }
-
-    // Anytime the above returns false, run this
-    protected static HttpSession clearUser(HttpSession session) {
-        Enumeration<String> sNE = session.getAttributeNames();
-        while (sNE.hasMoreElements()) {
-            String next = sNE.nextElement();
-            if (next.equals("userName") || next.equals("userKey") || next.equals("userId"))
-                session.removeAttribute(next);
-        }
-        return session;
-    }
-
-    // Same, but for sessions within ServletRequests
-    protected static HttpServletRequest clearUserReq(HttpServletRequest request) {
-        Enumeration<String> sNE = request.getSession().getAttributeNames();
-        while (sNE.hasMoreElements()) {
-            String next = sNE.nextElement();
-            if (next.equals("userName") || next.equals("userKey") || next.equals("userId"))
-                request.getSession().removeAttribute(next);
-        }
-        return request;
-    }
-
-    private int uIDtopID(int uID) {
-        for (RegUser u : regUserDao.findAll()) if (u.getID() == uID) return u.getID();
-        return -1;
-    }
-
-    // Initialize new user session
-    private HttpSession userSessionInit(HttpSession session, RegUser u, byte[] key) {
-
-        // Clear any old data
-        session = clearUser(session);
-
-        // Create user login cookie. Carries minimal data - main purpose is for timing out the session data
-        String userName = u.getUsername(); // temp changed to string
-        // User data timeout: 10 minutes
-        // userName.setMaxAge(600);
-        // Bad javascript injections are bad
-        // userName.setHttpOnly(true);
-
-        session.setAttribute("userName", userName);
-        session.setAttribute("userKey", key);
-        session.setAttribute("userId", u.getID());
-        return session;
-    }
-
-    // See above, but handles servlet request sessions
-    private HttpServletRequest userSessionInitReq(HttpServletRequest request, RegUser u, byte[] key) {
-
-        // Clear any old data
-        request = clearUserReq(request);
-
-        // Create user login cookie. Carries minimal data - main purpose is for timing out the session data
-        Cookie userName = new Cookie("username", u.getUsername());
-        // User data timeout: 10 minutes
-        userName.setMaxAge(600);
-        // Bad javascript injections are bad
-        userName.setHttpOnly(true);
-
-        request.getSession().setAttribute("userName", userName);
-        request.getSession().setAttribute("userKey", key);
-        request.getSession().setAttribute("userId", u.getID());
-        return request;
-    }
 }
