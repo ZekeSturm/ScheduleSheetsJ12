@@ -202,7 +202,9 @@ public class EventController {
     //--------------------------------------------------------------------------------------------------
 
     @GetMapping(value="new/static/temp")
-    public String newStaticTempCreator(Model model, HttpSession session) {
+    public String newStaticTempCreator(Model model, HttpServletRequest request, HttpServletResponse response) {
+
+        HttpSession session = request.getSession();
 
         boolean logged = false; //checkLog(session);
         boolean tLogged = checkTLog(session);
@@ -210,7 +212,7 @@ public class EventController {
         model.addAttribute("logged", logged);
 
         if (logged || tLogged) return "redirect:/event/new/static";
-        else session = clearUser(session);
+        else handleLogoff(request, response);
 
         model.addAttribute("sessionId", session.getId());
 
@@ -221,14 +223,15 @@ public class EventController {
     }
 
     @PostMapping(value="new/static/temp")
-    public String newTempCreator(Model model, HttpServletRequest request, @RequestParam("username") String username,
-                                 @RequestParam("password") String password, @RequestParam("confirm") String confirm) {
+    public String newTempCreator(Model model, HttpServletRequest request, HttpServletResponse response,
+                                 @RequestParam("username") String username, @RequestParam("password") String password,
+                                 @RequestParam("confirm") String confirm) {
 
         boolean logged = false; //checkLog(request.getSession());
         boolean tLogged = checkTLog(request.getSession());
 
         if (logged || tLogged) return "redirect:/event/new/static";
-        else request = clearUserReq(request);
+        else handleLogoff(request, response);
 
 
         if (password.equals(confirm)) {
@@ -245,15 +248,13 @@ public class EventController {
     }
 
     @GetMapping(value="{id}")
-    public String eventPage(Model model, HttpSession session, @PathVariable("id") String eventID) {
+    public String eventPage(Model model, HttpServletRequest request, HttpServletResponse response, @PathVariable("id") String eventID) {
 
-        model.addAttribute("sessionId", session.getId());
-
-        boolean logged = false; //checkLog(session);
+        boolean logged = checkLog(request, response).isLogged();
 
         model.addAttribute("logged", logged);
 
-        if (!logged) session = clearUser(session);
+        if (!logged) handleLogoff(request, response);
 
         ErrorPackage handler = getEvent(model, parseSingleInt(eventID));
 
@@ -275,12 +276,14 @@ public class EventController {
     @GetMapping(value="{id}/join")
     public String addUser(Model model, HttpServletRequest request, HttpServletResponse response, @PathVariable("id") String eventID) {
 
+        HttpSession session = request.getSession();
+
         boolean logged = checkLog(request, response).isLogged();
 
         model.addAttribute("logged", logged);
 
         if (logged) {
-            // handle user join
+            RegUser u = findUserByUID((Integer)session.getAttribute("UserID"));
 
         } else handleLogoff(request, response);
 

@@ -153,6 +153,7 @@ public class ParserUtil {
             // Check if there will be further characters to parse - if so, continue
             if (i < lastIndex) {
                 subParse = subParse.substring(i + 1);
+                lastIndex = subParse.length() - 1;
                 continue;
             }
 
@@ -182,7 +183,7 @@ public class ParserUtil {
         int buffer = 0;
         String sBuffer = "";
 
-        ErrorPackage out;
+        ErrorPackage out = yesError("PLACEHOLDER"); // Stifle "may not have been initialized" exc. w/ placeholder init
 
         for (int i = 0; i < cArray.length; i++) {
             char c = cArray[i];
@@ -199,8 +200,8 @@ public class ParserUtil {
             }
             if (lastInt) {
                 // return index if retPos w/ initial substring
+                out = noError();
                 if (retPos) {
-                    out = noError();
                     out.addAux("intOut", buffer);
                     out.addAux("lastIndex", i);
                     out.addAux("priorString", sBuffer);
@@ -212,9 +213,13 @@ public class ParserUtil {
                 lastChar = true;
             }
         }
+
         if (!intFound && !lastInt) return yesError("No integers in string - " + parseThis);
         else {
-            out = noError();
+            if (!intFound) {
+                out = noError();
+                out.addAux("lastIndex", cArray.length);
+            }
             out.addAux("intOut", buffer);
             out.addAux("stringFrags", sOutput);
             return out;
@@ -237,11 +242,12 @@ public class ParserUtil {
 
     // Output a string from a byte in a specifically formatted way
     public static String parseByteToString (byte[] parseThis) {
+        if (parseThis == null) return "NULL POINTER";
         // Output string
         String out = "";
         for (int i = 0; i < parseThis.length; i++) {
             out += Byte.toString(parseThis[i]);
-            if (i < parseThis.length - 1) out += " ]|[ ";
+            if (i < parseThis.length - 1) out += "]|[";
         }
         return out;
     }
@@ -274,8 +280,6 @@ public class ParserUtil {
         for (char c: chArray) {
 
             switch (c) {
-                case ' ':
-                    continue;
                 case ']':
                     primed = false;
                     try {
@@ -299,6 +303,8 @@ public class ParserUtil {
 
     // Checks bytes against specifically formatted strings from above method
     public static boolean checkByteAgainstString (byte[] checkThis, String parsedThis) {
-        return parsedThis.equals(parseByteToString(checkThis));
+        if (checkThis != null && !parsedThis.isEmpty())
+            return parsedThis.equals(parseByteToString(checkThis));
+        return false;
     }
 }

@@ -7,13 +7,13 @@ import org.CyfrSheets.ScheduleSheets.models.users.RegUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.util.*;
 
-import static org.CyfrSheets.ScheduleSheets.models.utilities.ExtraUtil.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassChecker.*;
 
@@ -37,19 +37,30 @@ public class LoginUtil {
     private LoginUtil() {
     }
 
-    // Call this before every method using the DAO - Allows "Autowiring" into a static variable
-    private static void daoInit() {
+    @PostConstruct
+    private void daoInit() {
         if (!daoInit) {
-            LoginUtil lu = new LoginUtil();
-            participantDao = lu.pD;
-            regUserDao = lu.ruD;
-            daoInit = true;
+            regUserDao = this.ruD;
+            participantDao = this.pD;
+            if (regUserDao != null && participantDao != null) daoInit = true;
+            else daoInit = false;
         }
     }
+
+    /**
+    // Call this before every method using the DAO - Allows "Autowiring" into a static variable
+    private static void daoInit() {
+        if (regUserDao == null || participantDao == null) daoInit = false;
+        if (!daoInit) {
+            regUserDao = this.ruD;
+        }
+    } */
 
 
     // Pair UIDs with their Participant ID - returns false if failed
     public static boolean idPairing(int pID, int uID) {
+        // DAO thingy
+        // daoInit();
         // Check for existence of user w/ id
         Optional<RegUser> o = regUserDao.findById(pID);
         if (o.isPresent()) {
@@ -73,6 +84,8 @@ public class LoginUtil {
 
     // Check login status. If transfer is set to true, will send a fresh version of the cookie if the user is logged in
     public static LoginPackage checkLog(HttpServletRequest request, HttpServletResponse response, boolean transfer) {
+        // DAO thingy
+        // daoInit();
 
         // Fetch cookies
         Cookie[] cookies = request.getCookies();
@@ -103,8 +116,12 @@ public class LoginUtil {
             int uID = ids.get(0);
             int pID = ids.get(1);
 
+            boolean hasUID = idMap.containsKey(uID);
+
             // Make sure uID and pID match
-            if (idMap.get(uID) != pID) return new LoginPackage();
+            if (!hasUID) hasUID = idPairing(pID, uID);
+            if (!hasUID) return new LoginPackage();
+            if(idMap.get(uID) != pID) return new LoginPackage();
 
             // Make sure user exists - pull user session key, check against cookie key & session key
             Optional<RegUser> possibleUser = regUserDao.findById(pID);
@@ -173,7 +190,7 @@ public class LoginUtil {
 
         if (logC == null && !nameF && !keyF && !idF) return true;
 
-        if (logC != null && !checkByteAgainstString((byte[])request.getSession().getAttribute("userId"), logC.getValue()))
+        if (logC != null && !checkByteAgainstString((byte[])request.getSession().getAttribute("userSKey"), logC.getValue()))
             return false;
         // Wrong log cookie for this session. somehow. TODO - add some debug for this later
 
@@ -184,6 +201,7 @@ public class LoginUtil {
 
         if (logC != null) {
             logC.setMaxAge(0);
+            logC.setPath("/");
             response.addCookie(logC);
         }
 
@@ -220,10 +238,13 @@ public class LoginUtil {
                 if (checkClassThenSet(inOut));
                 else return new LoginPackage();
 
+                regUserDao.save(u);
+
                 // Cookie init
                 fresh = new Cookie(u.getUID() + "checkbyte" + u.getID(), parseByteToString(uSesKey));
                 fresh.setMaxAge(600);
                 fresh.setHttpOnly(true);
+                fresh.setPath("/");
                 // Future me: If you figure out how to run this https - setSecure(true) here - Sincerely, past you
             } else {
                 // Grab cookies to check for login cookie
@@ -236,6 +257,19 @@ public class LoginUtil {
                         fresh = c;
 
                 if (fresh == null) return new LoginPackage(); // Failure to fetch login cookie - probably not there
+
+                Enumeration<String> sesAtts = session.getAttributeNames();
+
+                boolean[] dataFound = {false, false, false};
+
+                while (sesAtts.hasMoreElements()) {
+                    String s = sesAtts.nextElement();
+                    if (s.equals("userName")) dataFound[0] = true;
+                    if (s.equals("userId")) dataFound[1] = true;
+                    if (s.equals("userSKey")) dataFound[2] = true;
+                }
+
+                if (!dataFound[0] || !dataFound[1] || !dataFound[2]) return new LoginPackage();
 
                 // Retrieve session byte/key
                 byte[] sesKey = new byte[32];

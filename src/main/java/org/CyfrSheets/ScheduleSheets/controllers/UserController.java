@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.*;
 
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassChecker.checkClassThenSet;
+import static org.CyfrSheets.ScheduleSheets.models.utilities.ExtraUtil.getUserWithID;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.LoginUtil.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
 
@@ -75,10 +76,8 @@ public class UserController {
 
         if (checkClassThenSet(inOut));
 
-        else {
-            model.addAttribute("genericerror", true);
-            return "user/profile";
-        }
+        else { model.addAttribute("genericerror", true);
+            return "user/profile"; }
 
         uID = (int)inOut[1];
 
@@ -108,11 +107,11 @@ public class UserController {
     }
 
     @GetMapping(value = "login")
-    public String login(Model model, HttpSession session) {
+    public String login(Model model, HttpServletRequest request, HttpServletResponse response) {
 
-        model.addAttribute("sessionId", session.getId());
+        HttpSession session = request.getSession();
 
-        boolean logged = false; //checkLog(session);
+        boolean logged = checkLog(request, response).isLogged();
 
         if (logged) {
             // redirect to user profile
@@ -162,7 +161,7 @@ public class UserController {
             return "redirect:";
         }
         // Otherwise, success - session should be mostly initiated already by LoginUtil
-        return "redirect:/user/" + target.getUID();
+        return "redirect:/user/profile/" + target.getUID();
     }
 
     @GetMapping(value = "logoff")
@@ -172,7 +171,7 @@ public class UserController {
 
         boolean logged = checkLog(request, response).isLogged();
 
-        if (!logged) return "redirect:/user";
+        if (!logged) return "redirect:/user/login";
 
         model.addAttribute("userId", session.getAttribute("userId"));
         model.addAttribute("title", "Log Off");
@@ -194,7 +193,7 @@ public class UserController {
         // Fetch session
         HttpSession session = request.getSession();
 
-        boolean logged = false; //checkLog(session);
+        boolean logged = checkLog(request, response).isLogged();
 
         if (logged) {
             // redirect to user profile
@@ -260,14 +259,14 @@ public class UserController {
 
         try {
             // Create new user (or attempt to)
-            RegUser newU = new RegUser(username, password, email);
+            RegUser newU = getUserWithID(username, password, email);
 
             regUserDao.save(newU);
             participantDao.save(newU);
 
             handleLoginSecurity(newU, password, request, response);
 
-            return "redirect:/user/" + newU.getID();
+            return "redirect:/user/profile/" + newU.getID();
         } catch (InvalidPasswordException e) {
             model.addAttribute("passmismatch", true);
             // Clear user data for security

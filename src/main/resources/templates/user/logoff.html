@@ -8,9 +8,15 @@
 <form method="post">
     <div class="form-group">
         <input type="submit" value="Log Off" />
-        <input type="submit" value="On second thought..." th:formaction="@{~'/user/' + ${userId}}" formmethod="get" />
+        <input type="submit" value="On second thought..." th:formaction="@{profile/} + ${userId}" formmethod="get" />
     </div>
 </form>
 
 </body>
 </html>
+
+<!--
+
+
+
+-->

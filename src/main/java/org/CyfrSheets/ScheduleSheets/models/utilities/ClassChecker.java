@@ -10,6 +10,7 @@ public class ClassChecker {
 
     // Returns an enum from ClassCase that matches the given class, if it exists
     public static ClassCase checkClass(Object o) {
+        if (o == null) return UNKNOWN;
         // Fetch plaintext class name
         String s = o.getClass().getSimpleName().toLowerCase();
 
@@ -47,7 +48,7 @@ public class ClassChecker {
             ClassCase inCase = checkClass(inOut[0]);
             // In case someone passes an array to this one instead
             if (inCase.isArray) return cloneArray(inOut[0], inOut[1]);
-            Array.set(inOut[1], 0, inOut[1]);
+            Array.set(inOut, 1, inOut[0]);
             return true;
         } else return false;
     }

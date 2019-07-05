@@ -2,6 +2,9 @@ package org.CyfrSheets.ScheduleSheets.models.users;
 
 import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidPasswordException;
 import org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage;
+import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.GenerationTime;
+import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
@@ -14,12 +17,10 @@ import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
 
 @Entity
-@SequenceGenerator(name = "regseq", initialValue = 1, allocationSize = 2147483645)
 public class RegUser extends Participant {
 
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    @Column(updatable = false, nullable = false)
-    private int uID;
+    @Column(name = "uid", updatable = false, nullable = false)
+    private Integer uID;
 
     @NotNull
     private String emailAddr;
@@ -32,11 +33,12 @@ public class RegUser extends Participant {
     private boolean cSLYN = false;
 
     // Methods
-    public RegUser(String name, String pass, String emailAddr) throws InvalidPasswordException {
+    public RegUser(String name, String pass, String emailAddr, int uID) throws InvalidPasswordException {
         if (pass.isEmpty() || pass.isBlank()) throw new InvalidPasswordException("RegUser Constructor Missing Password");
         setUsername(name);
         this.emailAddr = emailAddr;
         securePassword(pass);
+        this.uID = uID;
     }
 
     public RegUser() { }

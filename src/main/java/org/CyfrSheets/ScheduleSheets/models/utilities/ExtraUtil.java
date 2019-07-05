@@ -1,6 +1,19 @@
 package org.CyfrSheets.ScheduleSheets.models.utilities;
 
+import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidPasswordException;
+import org.CyfrSheets.ScheduleSheets.models.users.RegUser;
+import org.springframework.stereotype.Component;
+
+@Component
 public class ExtraUtil {
+
+    private static int nextUID = 1;
+
+    public static RegUser getUserWithID(String name, String pass, String emailAddr) throws InvalidPasswordException {
+        RegUser out = new RegUser(name, pass, emailAddr, nextUID);
+        nextUID++;
+        return out;
+    }
 
     public static boolean checkByteEquals(byte[] a, byte[] b) {
         if (a.length != b.length) return false;
