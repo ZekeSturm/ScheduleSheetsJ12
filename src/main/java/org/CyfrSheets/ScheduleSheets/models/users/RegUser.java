@@ -92,6 +92,7 @@ public class RegUser extends Participant {
     }
 
     public boolean checkKey(byte[] hash) {
+        if (hash == null || hash.length != seshKey.length) return false;
         for (int i = 0; i < hash.length ; i++) if (hash[i] != seshKey[i]) return false;
         return true;
     }

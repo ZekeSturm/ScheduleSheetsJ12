@@ -50,7 +50,7 @@ public class UserController {
             return "redirect:user/profile/" + uID;
         } else {
             model.addAttribute("title", "Register a new account");
-            handleLogoff(request, response);
+            session = handleLogoff(request, response);
             return "redirect:user/register";
         }
 
@@ -131,11 +131,14 @@ public class UserController {
         LoginPackage lP = checkLog(request, response);
         boolean logged = lP.isLogged();
 
+        // Initialize session
+        HttpSession session = request.getSession();
+
         if (logged) {
             // redirect to user profile
             int uID = (int) request.getSession().getAttribute("userId");
             return "redirect:/user/" + uID;
-        } else handleLogoff(request, response); // cautionary data clear
+        } else session = handleLogoff(request, response); // cautionary data clear
 
         RegUser target = null;
 
@@ -183,7 +186,9 @@ public class UserController {
     @PostMapping(value = "logoff")
     public String logOff(HttpServletRequest request, HttpServletResponse response) {
 
-        handleLogoff(request, response);
+        HttpSession session = request.getSession();
+
+        session = handleLogoff(request, response);
         return "redirect:/";
     }
 
@@ -202,7 +207,7 @@ public class UserController {
         } else {
             // Create new user
             model.addAttribute("title", "Register a new account");
-            handleLogoff(request, response);
+            session = handleLogoff(request, response);
             return "user/register";
         }
     }
@@ -215,11 +220,13 @@ public class UserController {
         // Check if already logged in
         boolean logged = checkLog(request, response).isLogged();
 
+        HttpSession session = request.getSession();
+
         if (logged) {
             // redirect to user profile
             int uID = (int) request.getSession().getAttribute("userId");
             return "redirect:/user/" + uID;
-        } else handleLogoff(request, response); // Clear user data just in case
+        } else session = handleLogoff(request, response); // Clear user data just in case
 
         // Check for username
         if (username.isEmpty()) {
@@ -234,7 +241,7 @@ public class UserController {
         }
 
         // If passwords do not match, return to register page
-        if (!password.equals(confirm) || confirm.isEmpty()) {
+        if (confirm.isEmpty() || !password.equals(confirm)) {
             model.addAttribute("passmismatch", true);
             return "redirect:/user/register";
         }
@@ -270,7 +277,7 @@ public class UserController {
         } catch (InvalidPasswordException e) {
             model.addAttribute("passmismatch", true);
             // Clear user data for security
-            handleLogoff(request, response);
+            session = handleLogoff(request, response);
             return "redirect:/user/register";
         }
     }

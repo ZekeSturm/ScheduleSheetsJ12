@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.util.*;
 
+import static java.util.Calendar.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassChecker.*;
 
@@ -47,20 +48,8 @@ public class LoginUtil {
         }
     }
 
-    /**
-    // Call this before every method using the DAO - Allows "Autowiring" into a static variable
-    private static void daoInit() {
-        if (regUserDao == null || participantDao == null) daoInit = false;
-        if (!daoInit) {
-            regUserDao = this.ruD;
-        }
-    } */
-
-
     // Pair UIDs with their Participant ID - returns false if failed
     public static boolean idPairing(int pID, int uID) {
-        // DAO thingy
-        // daoInit();
         // Check for existence of user w/ id
         Optional<RegUser> o = regUserDao.findById(pID);
         if (o.isPresent()) {
@@ -83,57 +72,101 @@ public class LoginUtil {
     }
 
     // Check login status. If transfer is set to true, will send a fresh version of the cookie if the user is logged in
+    // TODO - Implement so as to match below comment instead of above - delete above when done
+    // Check login status. If transfer is set to true, will refresh an unexpired session if user is logged in
     public static LoginPackage checkLog(HttpServletRequest request, HttpServletResponse response, boolean transfer) {
-        // DAO thingy
-        // daoInit();
 
-        // Fetch cookies
-        Cookie[] cookies = request.getCookies();
+        // Get time-of-request
+        Calendar currentTime = getInstance();
 
-        // Persisting variable to check for logged user cookie
-        boolean logCookieFound = false;
-        Cookie logCookie = null;
+        // Fetch session
+        HttpSession session = request.getSession();
 
-        // Check for logged user cookie
-        if (cookies.length != 0) for (Cookie c : cookies)
-            if (c.getName().toLowerCase().contains("checkbyte")) {
-                logCookie = c;
-                logCookieFound = true;
-            } else if (logCookieFound) break;
+        // Setup things to check for attributes
+        boolean userNameFound = false;
+        boolean userIDFound = false;
+        boolean userKeyFound = false;
+        boolean sessAgeFound = false;
+        Enumeration<String> attNames = session.getAttributeNames();
 
-        if (logCookieFound) { // Return logged in - transfer data if transfer == true
-            // Cookie name format - uID + "checkbyte" + pID]
-            LoginPackage out;
-            ErrorPackage handler = parseInts(logCookie.getName());
+        // Validation code block - break out to error & session clear if it fails at any point
 
-            if (handler.hasError()) return new LoginPackage(); // Empty failure default - no id info found
+        validation:
+        {
+            while (attNames.hasMoreElements()) {
+                String s = attNames.nextElement();
+                if (s.equals("userName")) userNameFound = true;
+                if (s.equals("userId")) userIDFound = true;
+                if (s.equals("userSKey")) userKeyFound = true;
+                if (s.equals("sessionExpiry")) sessAgeFound = true;
+            }
 
-            // Extract arraylist - check to ensure the right amount of ints were found
-            ArrayList<Integer> ids = (ArrayList<Integer>) handler.getAux("arrayOut");
-            if (ids.size() < 2 || ids.size() > 2) return new LoginPackage();
+            // If any fields are missing, remove the ones that do exist and nullify the session/return default failure LP
+            if (!(userNameFound && userIDFound && userKeyFound && sessAgeFound)) break validation;
 
-            // Extract IDs
-            int uID = ids.get(0);
-            int pID = ids.get(1);
+            // By now all elements must be present - check them for validity, and check if session is expired
+            // Start by checking if user exists
+            Object uNO = session.getAttribute("userName");
+            String userName = null;
+            RegUser userByName = null;
 
-            boolean hasUID = idMap.containsKey(uID);
+            // Check if the userName attribute is indeed a string, and if a user with this username exists
+            switch (checkClass(uNO)) {
+                case STRING:
+                    userName = (String) uNO;
+                    for (RegUser u : regUserDao.findAll()) {
+                        if (u.getUsername().equals(userName)) {
+                            userByName = u;
+                            break;
+                        }
+                    }
+                    if (userByName != null) break;
+                default:
+                    break validation;
+            }
 
-            // Make sure uID and pID match
-            if (!hasUID) hasUID = idPairing(pID, uID);
-            if (!hasUID) return new LoginPackage();
-            if(idMap.get(uID) != pID) return new LoginPackage();
+            // Next check if there's a user ID, and if it matches the user located.
+            Object uIDO = session.getAttribute("userId");
+            int userId = -1;
+            switch (checkClass(uIDO)) {
+                case INTEGER:
+                    userId = (int) uIDO;
+                    if (userId == userByName.getUID()) break;
+                default:
+                    break validation;
+            }
 
-            // Make sure user exists - pull user session key, check against cookie key & session key
-            Optional<RegUser> possibleUser = regUserDao.findById(pID);
-            if (!possibleUser.isPresent()) return new LoginPackage();
+            // Check if the user key is a hash, and all that jazz
+            Object uKO = session.getAttribute("userSKey");
+            byte[] userSKey = null;
+            switch (checkClass(uKO)) {
+                case HASH:
+                    userSKey = (byte[]) uKO;
+                    if (userByName.checkKey(userSKey)) break;
+                default:
+                    break validation;
+            }
 
-            RegUser ru = possibleUser.get();
+            // Check if the session has expired (also if it has an expiration time)
+            // Extend non-expired sessions if transfer is flagged true
+            Object sEO = session.getAttribute("sessionExpiry");
+            Calendar expiry = null;
+            switch (checkClass(sEO)) {
+                case CALENDAR:
+                    expiry = (Calendar) sEO;
+                    if (currentTime.after(expiry)) break;
+                default:
+                    break validation;
+            }
+            if (transfer) expiry.set(MINUTE, currentTime.get(MINUTE) + 5);
 
-            if (!ru.checkKey(logCookie.getValue())) return new LoginPackage();
+            session.setAttribute("sessionExpiry", expiry);
 
-            return handleLogin(ru, request, response, transfer);
-        } else
-            return new LoginPackage(false, null, request, response); // Login failure - No error along the way
+            return new LoginPackage(true, userSKey, session, request, response);
+        }
+        // Only called if breaking out of the above validation block if something has gone wrong
+        session = clearUserFields(session);
+        return new LoginPackage(session);
     }
 
     // Same as above - assumes transfer = true
@@ -142,6 +175,18 @@ public class LoginUtil {
 
     // Check login status. Do not automatically forward information or extend login duration
     public static LoginPackage checkLog(HttpServletRequest request) { return checkLog(request, null, false); }
+
+    private static HttpSession clearUserFields(HttpSession session) {
+        Enumeration<String> attNames = session.getAttributeNames();
+        while (attNames.hasMoreElements()) {
+            String s = attNames.nextElement();
+            if (s.equals("userName")) session.removeAttribute("userName");
+            if (s.equals("userId")) session.removeAttribute("userId");
+            if (s.equals("userSKey")) session.removeAttribute("userSKey");
+            if (s.equals("sessionExpiry")) session.removeAttribute("sessionExpiry");
+        }
+        return session;
+    }
 
     // Simplify finding user by UID - returns null on failure
     public static RegUser findUserByUID(int uID) {
@@ -158,56 +203,17 @@ public class LoginUtil {
     }
 
     // What it says on the tin
-    public static boolean handleLogoff(HttpServletRequest request, HttpServletResponse response) {
-        // Fetch cookies - check for login cookie
-        Cookie[] cookies = request.getCookies();
-        Cookie logC = null;
-        for (Cookie c : cookies) if (c.getName().contains("checkbyte")) logC = c;
+    public static HttpSession handleLogoff(HttpServletRequest request, HttpServletResponse response) {
+        // Use checklog to check for the existence of necessary info. This will automatically clear all fields and
+        // leave user logged off.
+        LoginPackage lP = checkLog(request);
+        if (!lP.isLogged()) lP.getSession();
 
-        // Fetch attribute names from session
-        Enumeration<String> sNE = request.getSession().getAttributeNames();
-        // Find login attributes
-        boolean nameF = false;
-        boolean keyF = false;
-        boolean idF = false;
-
-        while (sNE.hasMoreElements()) {
-            String next = sNE.nextElement();
-            switch (next) {
-                case "userName":
-                    nameF = true;
-                    continue;
-                case "userSKey":
-                    keyF = true;
-                    continue;
-                case "userId":
-                    idF = true;
-                    continue;
-                default:
-                    continue;
-            }
-        }
-
-        if (logC == null && !nameF && !keyF && !idF) return true;
-
-        if (logC != null && !checkByteAgainstString((byte[])request.getSession().getAttribute("userSKey"), logC.getValue()))
-            return false;
-        // Wrong log cookie for this session. somehow. TODO - add some debug for this later
-
-        // Wipe found fields
-        if (nameF) request.getSession().removeAttribute("userName");
-        if (keyF) request.getSession().removeAttribute("userSKey");
-        if (idF) request.getSession().removeAttribute("userId");
-
-        if (logC != null) {
-            logC.setMaxAge(0);
-            logC.setPath("/");
-            response.addCookie(logC);
-        }
-
-        return true;
+        // Pass cleared session back out
+        return clearUserFields(request.getSession());
     }
 
+    // TODO - Update to reflect checkbyte cookie phase-out
     // Handle login process
     private static LoginPackage handleLogin
         (Participant p, HttpServletRequest request, HttpServletResponse response, boolean transfer, boolean freshLog) {
@@ -220,79 +226,63 @@ public class LoginUtil {
             RegUser u = (RegUser) p;
             // Pair IDs
             if (idPairing(u.getID(), u.getUID())) ;
-            else return new LoginPackage(); // If it somehow bungles return this to be safe
+            else return new LoginPackage(handleLogoff(request, response)); // If it somehow bungles return this to be safe
 
             byte [] uSesKey = new byte[32];
-
-            Cookie fresh = null;
 
             if (freshLog) {
                 // Get session hash
                 ErrorPackage handler = u.keyGen();
 
-                if (handler.hasError()) return new LoginPackage();
-
-                Object[] inOut = {handler.getAux("key"), uSesKey};
+                if (handler.hasError()) return new LoginPackage(handleLogoff(request, response));
 
                 // Class Check -> clone if true
-                if (checkClassThenSet(inOut));
-                else return new LoginPackage();
+                if (checkArrayClassThenSet(handler.getAux("key"), uSesKey));
+                else return new LoginPackage(handleLogoff(request, response));
 
                 regUserDao.save(u);
-
-                // Cookie init
-                fresh = new Cookie(u.getUID() + "checkbyte" + u.getID(), parseByteToString(uSesKey));
-                fresh.setMaxAge(600);
-                fresh.setHttpOnly(true);
-                fresh.setPath("/");
-                // Future me: If you figure out how to run this https - setSecure(true) here - Sincerely, past you
             } else {
-                // Grab cookies to check for login cookie
-                Cookie[] cookies = request.getCookies();
-
-                // Check cookies for "checkbyte" cookie and compare string-key to user session key. Make "fresh" cookie
-                // match this cookie if found - if not found, will remain null
-                for (Cookie c : cookies)
-                    if (c.getName().equals(u.getUID() + "checkbyte" + u.getID()) && u.checkKey(c.getValue()))
-                        fresh = c;
-
-                if (fresh == null) return new LoginPackage(); // Failure to fetch login cookie - probably not there
-
                 Enumeration<String> sesAtts = session.getAttributeNames();
 
-                boolean[] dataFound = {false, false, false};
+                boolean[] dataFound = {false, false, false, false};
 
                 while (sesAtts.hasMoreElements()) {
                     String s = sesAtts.nextElement();
                     if (s.equals("userName")) dataFound[0] = true;
                     if (s.equals("userId")) dataFound[1] = true;
                     if (s.equals("userSKey")) dataFound[2] = true;
+                    if (s.equals("sessionExpiry")) dataFound[3] = true;
                 }
 
-                if (!dataFound[0] || !dataFound[1] || !dataFound[2]) return new LoginPackage();
+                if (!dataFound[0] || !dataFound[1] || !dataFound[2] || !dataFound[3])
+                    return new LoginPackage(handleLogoff(request, response));
 
                 // Retrieve session byte/key
                 byte[] sesKey = new byte[32];
                 if (checkArrayClassThenSet(session.getAttribute("userSKey"), sesKey));
-                else return new LoginPackage();
+                else return new LoginPackage(handleLogoff(request, response));
 
-                // Check cookie byte string against session byte
-                if (!checkByteAgainstString(sesKey, fresh.getValue())) return new LoginPackage();
+                // Check session key against stored user key
+                if (!u.checkKey(sesKey)) return new LoginPackage(handleLogoff(request, response));
 
                 // Save byte to uSesKey
                 checkArrayClassThenSet(sesKey, uSesKey);
             }
 
-            if (transfer || freshLog) response.addCookie(fresh);
             if (freshLog) {
                 session.setAttribute("userName", u.getUsername());
                 session.setAttribute("userId", u.getUID());
                 session.setAttribute("userSKey", uSesKey);
             }
+            if (transfer) {
+                Calendar expiry = getInstance();
+                expiry.set(MINUTE, expiry.get(MINUTE) + 5);
+                session.setAttribute("sessionExpiry", expiry);
+            }
 
-            return new LoginPackage(true, uSesKey, request, response);
+            return new LoginPackage(true, uSesKey, session, request, response);
 
-        } else return new LoginPackage(); // Return default failure until above to-do is done
+        } else return new LoginPackage(handleLogoff(request, response)); // Return default failure until above to-do is done
     }
 
     // Shorthand for non-initial login/login check

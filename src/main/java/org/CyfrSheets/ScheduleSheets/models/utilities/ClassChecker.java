@@ -32,6 +32,8 @@ public class ClassChecker {
                 return ERRORPACKAGE;
             case "byte[]":
                 return HASH;
+            case "calendar":
+                return CALENDAR;
 
             case "object":
                 return OBJECT;

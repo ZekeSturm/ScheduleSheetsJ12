@@ -4,6 +4,8 @@ import org.CyfrSheets.ScheduleSheets.models.users.Participant;
 import org.CyfrSheets.ScheduleSheets.models.users.RegUser;
 import org.CyfrSheets.ScheduleSheets.models.users.TempUser;
 
+import java.util.Calendar;
+
 public enum ClassCase {
 
     // Add more cases to the ClassChecker switch if adding enums
@@ -15,6 +17,7 @@ public enum ClassCase {
     TEMPUSER ("temu", TempUser.class, false),
     ERRORPACKAGE("erpk", ErrorPackage.class, false),
     HASH ("hash", byte[].class, true),
+    CALENDAR ("cal", Calendar.class, false),
 
     OBJECT ("object", Object.class, false),
     UNKNOWN ("uknw", null, false);
