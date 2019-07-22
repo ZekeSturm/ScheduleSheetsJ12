@@ -2,9 +2,6 @@ package org.CyfrSheets.ScheduleSheets.models.users;
 
 import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidPasswordException;
 import org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage;
-import org.hibernate.annotations.Generated;
-import org.hibernate.annotations.GenerationTime;
-import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;

@@ -33,9 +33,7 @@ public class UserController {
     private BaseEventDao baseEventDao;
 
     @GetMapping(value = {"", "/"})
-    public String index(Model model, HttpServletRequest request, HttpServletResponse response) {
-
-        HttpSession session = request.getSession();
+    public String index(Model model, HttpSession session, HttpServletRequest request, HttpServletResponse response) {
 
         LoginPackage lP = checkLog(request, response);
 
@@ -51,13 +49,13 @@ public class UserController {
         } else {
             model.addAttribute("title", "Register a new account");
             session = handleLogoff(request, response);
-            return "redirect:user/register";
+            return "redirect:/user/register";
         }
 
     }
 
     @GetMapping(value = "/profile/{uid}")
-    public String profile(Model model, HttpServletRequest request, HttpServletResponse response, @PathVariable("uid") String uIDstr) {
+    public String profile(Model model, HttpSession session, HttpServletRequest request, HttpServletResponse response, @PathVariable("uid") String uIDstr) {
 
         // Pull int out of uid string
         ErrorPackage handler = parseSingleInt(uIDstr, true);
@@ -116,7 +114,7 @@ public class UserController {
         if (logged) {
             // redirect to user profile
             int uID = (int) session.getAttribute("userId");
-            return "redirect:/user/" + uID;
+            return "redirect:/user/profile/" + uID;
         } else {
             // To the login page
             model.addAttribute("title", "Log In!");

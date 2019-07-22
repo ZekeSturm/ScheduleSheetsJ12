@@ -8,14 +8,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.util.*;
 
 import static java.util.Calendar.*;
-import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassChecker.*;
 
 @Component
@@ -71,8 +69,6 @@ public class LoginUtil {
         return handleLogin(p, request, response); // Fresh login
     }
 
-    // Check login status. If transfer is set to true, will send a fresh version of the cookie if the user is logged in
-    // TODO - Implement so as to match below comment instead of above - delete above when done
     // Check login status. If transfer is set to true, will refresh an unexpired session if user is logged in
     public static LoginPackage checkLog(HttpServletRequest request, HttpServletResponse response, boolean transfer) {
 
@@ -154,7 +150,7 @@ public class LoginUtil {
             switch (checkClass(sEO)) {
                 case CALENDAR:
                     expiry = (Calendar) sEO;
-                    if (currentTime.after(expiry)) break;
+                    if (!currentTime.after(expiry)) break;
                 default:
                     break validation;
             }
@@ -213,10 +209,12 @@ public class LoginUtil {
         return clearUserFields(request.getSession());
     }
 
-    // TODO - Update to reflect checkbyte cookie phase-out
     // Handle login process
     private static LoginPackage handleLogin
         (Participant p, HttpServletRequest request, HttpServletResponse response, boolean transfer, boolean freshLog) {
+
+        // Save query time
+        Calendar qTime = getInstance();
 
         // Fetch session
         HttpSession session = request.getSession();
@@ -274,10 +272,11 @@ public class LoginUtil {
                 session.setAttribute("userId", u.getUID());
                 session.setAttribute("userSKey", uSesKey);
             }
-            if (transfer) {
-                Calendar expiry = getInstance();
-                expiry.set(MINUTE, expiry.get(MINUTE) + 5);
-                session.setAttribute("sessionExpiry", expiry);
+            if (transfer || freshLog) {
+                // Initialize refresh time
+                Calendar newExpiry = qTime;
+                newExpiry.set(MINUTE, qTime.get(MINUTE) + 5);
+                session.setAttribute("sessionExpiry", newExpiry);
             }
 
             return new LoginPackage(true, uSesKey, session, request, response);

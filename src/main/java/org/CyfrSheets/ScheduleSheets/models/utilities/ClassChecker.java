@@ -32,7 +32,7 @@ public class ClassChecker {
                 return ERRORPACKAGE;
             case "byte[]":
                 return HASH;
-            case "calendar":
+            case "gregoriancalendar":
                 return CALENDAR;
 
             case "object":
