@@ -33,7 +33,9 @@ public class UserController {
     private BaseEventDao baseEventDao;
 
     @GetMapping(value = {"", "/"})
-    public String index(Model model, HttpSession session, HttpServletRequest request, HttpServletResponse response) {
+    public String index(Model model, HttpServletRequest request, HttpServletResponse response) {
+
+        HttpSession session = request.getSession();
 
         LoginPackage lP = checkLog(request, response);
 
@@ -55,7 +57,9 @@ public class UserController {
     }
 
     @GetMapping(value = "/profile/{uid}")
-    public String profile(Model model, HttpSession session, HttpServletRequest request, HttpServletResponse response, @PathVariable("uid") String uIDstr) {
+    public String profile(Model model, HttpServletRequest request, HttpServletResponse response, @PathVariable("uid") String uIDstr) {
+
+        HttpSession session = request.getSession();
 
         // Pull int out of uid string
         ErrorPackage handler = parseSingleInt(uIDstr, true);
