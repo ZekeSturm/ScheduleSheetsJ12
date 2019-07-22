@@ -51,14 +51,6 @@
     </div>
 </form>
 
-<!-- Old submission input/button:
-        <div id="loginButton" th:style="${logged == true ? 'display:none' : 'display:block'}">
-            <button value="Login" onclick="submitEvent">Submit</button>
-        </div>
-        <div id="submitButton" th:style="${logged == true ? 'display: block' : 'display:none'}">
-            <input type="submit" name="submit" id="submit" />
-        </div> -->
-
 <div th:replace="fragments :: script-import"></div>
 <script>
     document.getElementById('endToggleButton').addEventListener("click", endToggle);

@@ -4,6 +4,7 @@ import org.CyfrSheets.ScheduleSheets.models.data.*;
 import org.CyfrSheets.ScheduleSheets.models.events.BaseEvent;
 import org.CyfrSheets.ScheduleSheets.models.events.StaticEvent;
 import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidDateTimeArrayException;
+import org.CyfrSheets.ScheduleSheets.models.forms.StaticEventForm;
 import org.CyfrSheets.ScheduleSheets.models.users.Participant;
 import org.CyfrSheets.ScheduleSheets.models.users.RegUser;
 import org.CyfrSheets.ScheduleSheets.models.users.TempUser;
@@ -72,22 +73,26 @@ public class EventController {
         model.addAttribute("tLogged", tLogged);
 
         model.addAttribute("badpass", false);
+
+        StaticEventForm form = new StaticEventForm(logged);
+
+        model.addAttribute("form", form);
+
         model.addAttribute("title", "Create your new event!");
 
         return "event/new-static";
     }
 
-    // TODO - Package all this crap in a form
+    // TODO - Package this in form [COMPLETE], refactor so farm auto-converts data and checks for more conditionals
 
     @PostMapping(value = "new/static")
     public String newStaticEvent(Model model, HttpServletRequest request, HttpServletResponse response,
-                                 @RequestParam("eventName") String name, @RequestParam("eventDesc") String desc,
-                                 @RequestParam("startDate") String startDate, @RequestParam("startTime")String startTime,
-                                 @RequestParam("endDate") String endDate, @RequestParam("endTime") String endTime,
-                                 @RequestParam("cName") String cName, @RequestParam("cPass") String cPass,
-                                 @RequestParam("confirm") String confirm) {
+                                 @RequestParam("form") StaticEventForm form) {
 
         boolean logged = checkLog(request, response).isLogged();
+
+        String cName = form.getCName();
+        String cPass = form.getCPass();
 
         boolean passmatch;
         if (logged) {
@@ -97,9 +102,7 @@ public class EventController {
             // Briefly hijack first logged check to clear user data
             handleLogoff(request, response);
 
-            if (cPass.equals(confirm)) {
-                passmatch = true;
-            } else {
+            if (!form.passMatch()) {
                 model.addAttribute("badpass", true);
                 model.addAttribute("title", "Create your new event!");
                 return "redirect:";
@@ -108,6 +111,9 @@ public class EventController {
 
         Calendar.Builder cb = new Calendar.Builder();
         cb.setCalendarType("gregorian");
+
+        String startDate = form.getStartDate();
+        String startTime = form.getStartTime();
 
         ErrorPackage handler;
         try {
@@ -124,6 +130,9 @@ public class EventController {
         } catch (InvalidDateTimeArrayException e) {
             handler = yesError(e.getMessage());
         }
+
+        String endDate = form.getEndDate();
+        String endTime = form.getEndTime();
 
         // check for end time
         ErrorPackage hTwo;
@@ -159,9 +168,9 @@ public class EventController {
             RegUser u = null;
 
             for (RegUser ru : regUserDao.findAll())
-                if (ru.getID() == (int)request.getSession().getAttribute("userId")) u = ru;
+                if (ru.getUID() == (int)request.getSession().getAttribute("userId")) u = ru;
 
-            // Normally I'd check after the above, but it should be impossible to have a cookie and be missing that data
+            // Normally I'd check after the above, but it should be impossible to be logged in and missing that data
             // Similarly it should be impossible to delete an active user unless someone jimmy drop tables's me.
             // TODO - On that note, reimplement input sanitizer at some point down the line
 
@@ -169,6 +178,10 @@ public class EventController {
 
             args.put("user", u);
         }
+
+        // Pull event name/desc
+        String name = form.getEventName();
+        String desc = form.getEventDesc();
 
         // Unpack whether or not there's an end time
         if (!hTwo.hasError()) out = seInit(name, desc, args, (Calendar)handler.getAux("startTime"),

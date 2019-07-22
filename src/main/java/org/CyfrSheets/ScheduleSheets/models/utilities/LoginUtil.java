@@ -172,18 +172,6 @@ public class LoginUtil {
     // Check login status. Do not automatically forward information or extend login duration
     public static LoginPackage checkLog(HttpServletRequest request) { return checkLog(request, null, false); }
 
-    private static HttpSession clearUserFields(HttpSession session) {
-        Enumeration<String> attNames = session.getAttributeNames();
-        while (attNames.hasMoreElements()) {
-            String s = attNames.nextElement();
-            if (s.equals("userName")) session.removeAttribute("userName");
-            if (s.equals("userId")) session.removeAttribute("userId");
-            if (s.equals("userSKey")) session.removeAttribute("userSKey");
-            if (s.equals("sessionExpiry")) session.removeAttribute("sessionExpiry");
-        }
-        return session;
-    }
-
     // Simplify finding user by UID - returns null on failure
     public static RegUser findUserByUID(int uID) {
         try {
@@ -292,5 +280,17 @@ public class LoginUtil {
     // Shorthand for initial login
     private static LoginPackage handleLogin(Participant p, HttpServletRequest request, HttpServletResponse response) {
         return handleLogin(p, request, response, false, true); }
+
+    private static HttpSession clearUserFields(HttpSession session) {
+        Enumeration<String> attNames = session.getAttributeNames();
+        while (attNames.hasMoreElements()) {
+            String s = attNames.nextElement();
+            if (s.equals("userName")) session.removeAttribute("userName");
+            if (s.equals("userId")) session.removeAttribute("userId");
+            if (s.equals("userSKey")) session.removeAttribute("userSKey");
+            if (s.equals("sessionExpiry")) session.removeAttribute("sessionExpiry");
+        }
+        return session;
+    }
 
 }
