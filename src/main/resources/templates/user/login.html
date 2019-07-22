@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments :: head"></head>
+
+<body>
+<div th:replace="fragments :: page-header"></div>
+
+<span th:if="${genericerror}">How the hell did you break this, the hard code should be flawless? (NoSuchAlgorithm somewhere in login)</span>
+
+<form method="post">
+    <div class="form-group">
+        <label th:for="username">Name:</label>
+        <input type="text" name="username" />
+        <label th:for="password">Password:</label>
+        <input type="password" name="password" />
+        <span th:if="${invaliduserpass}">Invalid Username or Password!</span>
+        <br>
+        <input type="submit" value="submit" />
+    </div>
+</form>
+
+<a th:href="@{/user/register}">Don't have an account? Sign up!</a>
+
+
+</body>
+</html>

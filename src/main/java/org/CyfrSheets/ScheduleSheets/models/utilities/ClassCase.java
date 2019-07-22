@@ -1,20 +1,37 @@
 package org.CyfrSheets.ScheduleSheets.models.utilities;
 
+import org.CyfrSheets.ScheduleSheets.models.users.Participant;
+import org.CyfrSheets.ScheduleSheets.models.users.RegUser;
+import org.CyfrSheets.ScheduleSheets.models.users.TempUser;
+
+import java.util.Calendar;
+
 public enum ClassCase {
 
     // Add more cases to the ClassChecker switch if adding enums
-    BOOLEAN ("bool"),
-    STRING ("str"),
-    INTEGER ("int"),
-    REGUSER ("regu"),
-    TEMPUSER ("temu"),
-    ERRORPACKAGE("erpk"),
+    BOOLEAN ("bool", Boolean.class, false),
+    STRING ("str", String.class, false),
+    INTEGER ("int", Integer.class, false),
+    PARTICIPANT ("part", Participant.class, false),
+    REGUSER ("regu", RegUser.class, false),
+    TEMPUSER ("temu", TempUser.class, false),
+    ERRORPACKAGE("erpk", ErrorPackage.class, false),
+    HASH ("hash", byte[].class, true),
+    CALENDAR ("cal", Calendar.class, false),
 
-    UNKNOWN ("uknw");
+    OBJECT ("object", Object.class, false),
+    UNKNOWN ("uknw", null, false);
 
-    private String indicator;
+    public final String indicator;
 
-    ClassCase(String s) { indicator = s; }
+    public final Class<?> type;
 
-    public String getIndicator() { return indicator; }
+    public final boolean isArray;
+
+
+    ClassCase(String s, Class<?> ct, boolean array) {
+        indicator = s;
+        type = ct;
+        isArray = array;
+    }
 }

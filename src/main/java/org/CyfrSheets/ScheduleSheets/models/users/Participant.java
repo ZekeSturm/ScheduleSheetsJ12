@@ -35,8 +35,6 @@ public abstract class Participant {
     @ManyToMany(mappedBy = "participants", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     private List<BaseEvent> events;
 
-    private boolean isUser;
-
     private byte[] secPass;
     private byte[] salt;
 
@@ -90,8 +88,8 @@ public abstract class Participant {
         // Check current password for match first
         ErrorPackage eP = checkPassword(pass);
         // Check for errors and successful pass match
-        if (!eP.hasError() && (Boolean)eP.getAux("ancil")) return changePassword(newPass);
-        if (!eP.hasError() && !(Boolean)eP.getAux("ancil")) eP.setMessage("Passwords Do Not Match!");
+        if (!eP.hasError() && eP.getAncil()) return changePassword(newPass);
+        if (!eP.hasError() && !eP.getAncil()) eP.setMessage("Passwords Do Not Match!");
         return eP;
     }
 
@@ -129,6 +127,8 @@ public abstract class Participant {
         }
         return true;
     }
+
+
 
     // Get a new salt and save it. Called every time a password is made or changed
     protected ErrorPackage shakeSalt() {

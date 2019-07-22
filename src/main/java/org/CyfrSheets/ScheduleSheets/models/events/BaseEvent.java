@@ -30,6 +30,9 @@ public abstract class BaseEvent {
 
     protected byte[] creatorKey;
 
+    // TempUser ID iterator
+    private int nextTempID;
+
     // Obfuscate creator salt if TempUser
     @ElementCollection
     private List<GrainOfSalt> possibleCreatorSalts = new ArrayList<>();
@@ -186,10 +189,21 @@ public abstract class BaseEvent {
         }
     }
 
+    public void matchUp(TempUser t) {
+        if (tempUsers.contains(t)) t.pairUp(this);
+        t.pairUp(nextTempID);
+        nextTempID++;
+    }
+
     protected void participantsInit() { if (participants == null) participants = new ArrayList<>(); }
-    protected void tempUsersInit() { if (tempUsers == null) tempUsers = new ArrayList<>(); }
+    protected void tempUsersInit() {
+        if (tempUsers == null) {
+            tempUsers = new ArrayList<>();
+            nextTempID = 1; }
+    }
 
     protected void addTempUser(TempUser t) {
+        tempUsersInit();
         tempUsers.add(t);
         t.setParent(this);
     }

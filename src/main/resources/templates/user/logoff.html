@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments :: head"></head>
+
+<body>
+<div th:replace="fragments :: page-header"></div>
+
+<form method="post">
+    <div class="form-group">
+        <input type="submit" value="Log Off" />
+        <input type="submit" value="On second thought..." th:formaction="@{profile/} + ${userId}" formmethod="get" />
+    </div>
+</form>
+
+</body>
+</html>
+
+<!--
+
+
+
+-->

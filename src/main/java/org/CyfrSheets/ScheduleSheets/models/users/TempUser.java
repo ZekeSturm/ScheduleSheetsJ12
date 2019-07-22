@@ -8,8 +8,8 @@ import javax.persistence.*;
 @Entity
 public class TempUser extends Participant {
 
-    @GeneratedValue(strategy = GenerationType.TABLE)
-    int tID;
+    private int tID;
+    private boolean tSet = false;
 
     @ManyToOne
     private BaseEvent parent;
@@ -23,6 +23,12 @@ public class TempUser extends Participant {
     }
 
     public TempUser() { }
+
+    // confirm tempuser is from event
+    public void pairUp(BaseEvent e) { if (e.getParticipants().contains(this)) tSet = true; }
+
+    // pair tID from event w/ user. Must call above first
+    public void pairUp (int tID) { if (tSet) tID = tID; }
 
     public int getTID() { return tID; }
 
