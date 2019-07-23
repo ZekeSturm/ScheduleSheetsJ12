@@ -2,6 +2,7 @@ package org.CyfrSheets.ScheduleSheets.models.utilities;
 
 import org.CyfrSheets.ScheduleSheets.models.data.ParticipantDao;
 import org.CyfrSheets.ScheduleSheets.models.data.RegUserDao;
+import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidPasswordException;
 import org.CyfrSheets.ScheduleSheets.models.users.Participant;
 import org.CyfrSheets.ScheduleSheets.models.users.RegUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,10 @@ public class LoginUtil {
 
     private static boolean daoInit = false;
 
+    private static int nextUID = -1;
+
+    private static boolean nUIDInit = false;
+
     private static HashMap<Integer, Integer> idMap = new HashMap<>(); // uID/pID pairing map - uID key, pID value
 
     // Constructor literally only used for the below. Should probably make it private. - Did it, past me. - current me
@@ -43,6 +48,13 @@ public class LoginUtil {
             participantDao = this.pD;
             if (regUserDao != null && participantDao != null) daoInit = true;
             else daoInit = false;
+            if (daoInit && (!nUIDInit || nextUID < 1)) {
+                int tUID = -1;
+                if (regUserDao.count() == 0) tUID = 0;
+                else for (RegUser u : regUserDao.findAll()) if (u.getUID() > tUID) tUID = u.getUID();
+                if (tUID > 0) nUIDInit = true;
+                nextUID = tUID + 1;
+            }
         }
     }
 
@@ -59,6 +71,12 @@ public class LoginUtil {
             }
         }
         return false;
+    }
+
+    public static RegUser getUserWithID(String name, String pass, String emailAddr) throws InvalidPasswordException {
+        RegUser out = new RegUser(name, pass, emailAddr, nextUID);
+        nextUID++;
+        return out;
     }
 
     // Public facing handle login - validates before passing to the main handler
@@ -154,7 +172,15 @@ public class LoginUtil {
                 default:
                     break validation;
             }
-            if (transfer) expiry.set(MINUTE, currentTime.get(MINUTE) + 5);
+            if (transfer) {
+                int cMin = currentTime.get(MINUTE);
+                if (cMin >= 55) {
+                    expiry.set(MINUTE, cMin - 50);
+                    expiry.set(HOUR, currentTime.get(HOUR) + 1);
+                } else {
+                    expiry.set(MINUTE, currentTime.get(MINUTE) + 5);
+                }
+            }
 
             session.setAttribute("sessionExpiry", expiry);
 

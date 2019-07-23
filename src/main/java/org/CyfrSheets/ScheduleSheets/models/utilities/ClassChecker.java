@@ -8,11 +8,24 @@ import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassCase.*;
 
 public class ClassChecker {
 
-    // Returns an enum from ClassCase that matches the given class, if it exists
+    // Returns an enum from ClassCase that matches the given object's class, if it exists
     public static ClassCase checkClass(Object o) {
         if (o == null) return UNKNOWN;
         // Fetch plaintext class name
         String s = o.getClass().getSimpleName().toLowerCase();
+        return checkClass(s);
+    }
+
+    // Returns an enum from ClassCase that matches the given class, if it exists
+    public static ClassCase checkClass(Class<?> c) {
+        if (c == null) return UNKNOWN;
+        // Fetch plaintext class name
+        String s = c.getSimpleName().toLowerCase();
+        return checkClass(s);
+    }
+
+    // Returns an enum from ClassCase that matches the given class string, if it exists
+    private static ClassCase checkClass(String s) {
 
         // Add cases when adding further classes to enum
         switch (s) {

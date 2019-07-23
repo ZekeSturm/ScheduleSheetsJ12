@@ -86,7 +86,7 @@ public class TestController {
 
         HttpSession session = request.getSession();
 
-        boolean login = parseBool(inOutString);
+        boolean login = Boolean.parseBoolean(inOutString);
         Cookie[] cookies = request.getCookies();
         boolean already = false;
         if (cookies.length != 0) for (Cookie c : cookies) if (c.getName().equals("Login") && c.getValue().equals("true")) already = true;

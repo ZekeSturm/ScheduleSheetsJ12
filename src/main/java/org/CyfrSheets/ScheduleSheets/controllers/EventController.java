@@ -3,7 +3,6 @@ package org.CyfrSheets.ScheduleSheets.controllers;
 import org.CyfrSheets.ScheduleSheets.models.data.*;
 import org.CyfrSheets.ScheduleSheets.models.events.BaseEvent;
 import org.CyfrSheets.ScheduleSheets.models.events.StaticEvent;
-import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidDateTimeArrayException;
 import org.CyfrSheets.ScheduleSheets.models.forms.StaticEventForm;
 import org.CyfrSheets.ScheduleSheets.models.users.Participant;
 import org.CyfrSheets.ScheduleSheets.models.users.RegUser;
@@ -17,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.util.Calendar;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 
@@ -74,7 +73,10 @@ public class EventController {
 
         model.addAttribute("badpass", false);
 
-        StaticEventForm form = new StaticEventForm(logged);
+        StaticEventForm form;
+
+        if (session.getAttribute("form") != null) form = (StaticEventForm)session.getAttribute("form"); // Make a class check for this later
+        else form = new StaticEventForm(logged);
 
         model.addAttribute("form", form);
 
@@ -83,80 +85,68 @@ public class EventController {
         return "event/new-static";
     }
 
-    // TODO - Package this in form [COMPLETE], refactor so farm auto-converts data and checks for more conditionals
-
     @PostMapping(value = "new/static")
     public String newStaticEvent(Model model, HttpServletRequest request, HttpServletResponse response,
-                                 @RequestParam("form") StaticEventForm form) {
+                                 @ModelAttribute("form") StaticEventForm form) {
 
         boolean logged = checkLog(request, response).isLogged();
 
-        String cName = form.getCName();
-        String cPass = form.getCPass();
+        // Fetch which fields are and are not present
+        ArrayList<String> whatsMissing = form.whatsMissing();
 
-        boolean passmatch;
-        if (logged) {
-            // Skip tempuser creation steps
-            passmatch = true;
-        } else {
-            // Briefly hijack first logged check to clear user data
+        // Check if any fields are missing - will be used to toss back if necessary and skip unnecessary blocks of code
+        boolean missingBits = whatsMissing.size() > 0;
+        // boolean missingLogin = false;
+
+        // Temp Login for unregistered users
+        if (!logged) {
+            // Briefly hijack first logged check to clear user data just in case
             handleLogoff(request, response);
 
+            // Confirm all three fields exist before checking password
+            if (missingBits) {
+                if (whatsMissing.contains("cName")) model.addAttribute("noCName", true);
+                if (whatsMissing.contains("cPass")) model.addAttribute("noCPass", true);
+                if (whatsMissing.contains("pConfirm")) model.addAttribute("noConfirm", true);
+            }
+
+            // Confirm passwords against each other
             if (!form.passMatch()) {
+                model.addAttribute("form", form);
                 model.addAttribute("badpass", true);
                 model.addAttribute("title", "Create your new event!");
-                return "redirect:";
+                return "redirect:/event/new/static";
             }
         }
 
-        Calendar.Builder cb = new Calendar.Builder();
-        cb.setCalendarType("gregorian");
+        // Post-login, check all other missing fields before proceeding - some are permissible
 
-        String startDate = form.getStartDate();
-        String startTime = form.getStartTime();
+        // If fields are missing, check for them
+        if (missingBits) {
+            // Reset variable - will be used to check for specifically critical missing bits
+            missingBits = false;
+            for (String s : whatsMissing) {
+                // Disregard these fields - already dealt with
+                if (equalsAny(s, new String[]{"cName", "cPass", "pConfirm"})) continue;
+                // Disregard missing startTime/Date if startCal is initialized
+                if (s.contains("start") && form.startData()) continue;
+                // Disregard missing endTime/Date if endCal is initialized
+                if (s.contains("end") && (form.endData() || !form.getHasEnd())) continue;
+                // No valid exception found - add flag to model
+                missingBits = true;
+                s = "no" + s.substring(0, 1).toUpperCase() + s.substring(1);
+            }
 
-        ErrorPackage handler;
-        try {
-            int[] sDA = parseDate(startDate);
-            int[] sTA = parseTime(startTime);
+            if (missingBits) {
+                // Refresh login page if fields are missing - pass along form to retain entered data, save for passwords
+                form.setCPass("");
+                form.setPConfirm("");
 
-            cb.setDate(sDA[0], sDA[1], sDA[2]);
-            cb.setTimeOfDay(sTA[0], sTA[1], sTA[2]);
-
-            Calendar sT = cb.build();
-
-            handler = noError();
-            handler.addAux("startTime", sT);
-        } catch (InvalidDateTimeArrayException e) {
-            handler = yesError(e.getMessage());
-        }
-
-        String endDate = form.getEndDate();
-        String endTime = form.getEndTime();
-
-        // check for end time
-        ErrorPackage hTwo;
-        try {
-            int[] eDA = parseDate(endDate);
-            int[] eTA = parseDate(endTime);
-
-            cb.setDate(eDA[0], eDA[1], eDA[2]);
-            cb.setTimeOfDay(eTA[0], eTA[1], eTA[2]);
-
-            Calendar eT = cb.build();
-
-            hTwo = noError();
-            handler.addAux("endTime", eT);
-        } catch (InvalidDateTimeArrayException e) {
-            hTwo = yesError(e.getMessage());
-        }
-
-        // Invalid event dta strings
-        if (handler.hasError()) {
-            model.addAttribute("baddta", true);
-            model.addAttribute("title", "Create your new event!");
-
-            return "redirect:";
+                request.getSession().setAttribute("form", form);
+                model.addAttribute("form", form);
+                model.addAttribute("title", "Create your new event!");
+                return "redirect:/event/new/static";
+            }
         }
 
         StaticEvent out;
@@ -183,15 +173,19 @@ public class EventController {
         String name = form.getEventName();
         String desc = form.getEventDesc();
 
-        // Unpack whether or not there's an end time
-        if (!hTwo.hasError()) out = seInit(name, desc, args, (Calendar)handler.getAux("startTime"),
-                (Calendar)handler.getAux("endTime"));
-        else out = seInit(name, desc, args, (Calendar)handler.getAux("startTime"));
+        // Create event
+        if (form.getHasEnd()) out = seInit(name, desc, args, form.getStart(), form.getEnd());
+        else out = seInit(name, desc, args, form.getStart());
 
 
         // Skip TempUser creation if logged - already fed out a user.
         if (!logged) {
             // TempUser Creation
+
+            // Fetch temp user data.
+            String cName = form.getCName();
+            String cPass = form.getCPass();
+
             TempUser tu = new TempUser(cName, cPass, out);
 
             out.tempInit(tu);

@@ -1,10 +1,8 @@
 package org.CyfrSheets.ScheduleSheets.models.utilities;
 
-import org.CyfrSheets.ScheduleSheets.models.events.BaseEvent;
-
 import javax.persistence.Embeddable;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
+
+// TODO - Class useless. Delete after next commit if events can still be created properly with temp users after testing
 
 @Embeddable
 public class GrainOfSalt {

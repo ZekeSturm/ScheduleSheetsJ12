@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.*;
 
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassChecker.checkClassThenSet;
-import static org.CyfrSheets.ScheduleSheets.models.utilities.ExtraUtil.getUserWithID;
+import static org.CyfrSheets.ScheduleSheets.models.utilities.LoginUtil.getUserWithID;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.LoginUtil.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
 
@@ -122,6 +122,7 @@ public class UserController {
         } else {
             // To the login page
             model.addAttribute("title", "Log In!");
+
             return "user/login";
         }
     }
@@ -163,7 +164,7 @@ public class UserController {
             // Failure - Back you go
             model.addAttribute("invaliduserpass", true);
             model.addAttribute("title", "Log In!");
-            return "redirect:";
+            return "redirect:/user/login";
         }
         // Otherwise, success - session should be mostly initiated already by LoginUtil
         return "redirect:/user/profile/" + target.getUID();

@@ -35,7 +35,7 @@ public abstract class BaseEvent {
 
     // Obfuscate creator salt if TempUser
     @ElementCollection
-    private List<GrainOfSalt> possibleCreatorSalts = new ArrayList<>();
+    private List<byte[]> possibleCreatorSalts = new ArrayList<>();
 
     @Embedded
     protected EventTime time;
@@ -78,9 +78,8 @@ public abstract class BaseEvent {
             }
             return false;
         } else {
-            for (GrainOfSalt g : possibleCreatorSalts) {
-                byte[] b = g.getSalt();
-                ErrorPackage cast = makeKey(b, pass);
+            for (byte[] h : possibleCreatorSalts) {
+                ErrorPackage cast = makeKey(h, pass);
                 if (cast.hasError()) continue;
                 if (isKey((byte[])cast.getAux("key"))) return true;
             }
@@ -129,11 +128,11 @@ public abstract class BaseEvent {
             SecureRandom sR = SecureRandom.getInstance("SHA1PRNG");
             int seed = r.nextInt(100);
             for (int i = 0; i < 100; i++) {
-                if (seed == i) possibleCreatorSalts.add(new GrainOfSalt(salt));
+                if (seed == i) possibleCreatorSalts.add(salt);
                 else {
                     byte[] nextByte = new byte[32];
                     sR.nextBytes(nextByte);
-                    possibleCreatorSalts.add(new GrainOfSalt(nextByte));
+                    possibleCreatorSalts.add(salt);
                 }
             }
             return noError(true);

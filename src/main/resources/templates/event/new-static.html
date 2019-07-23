@@ -5,50 +5,74 @@
 <body>
 <div th:replace="fragments :: page-header"></div>
 
-<form method="post" id="eventForm">
+<form method="post" th:object="${form}" th:action="@{/event/new/static}" id="eventForm">
     <div class="form-group">
         <label th:for="eventName">Name:</label>
-        <input type="text" name="eventName" />
+        <input type="text" th:field="*{eventName}" class="form-control" />
         <br />
-        <label th:for="eventDesc">Description:</label>
-        <br>
-        <textarea name="eventDesc" id="eventDesc" form="eventForm" placeholder="Describe your event here"></textarea>
-        <br />
-        <label th:for="startDate">Starting Date:</label>
-        <input type="date" name="startDate" />
-        <label th:for="startTime">Starting Time:</label>
-        <input type="time" name="startTime" />
-        <br />
-        <div id="endDTDiv">
-        <label th:for="endDate">End Date:</label>
-        <input type="date" name="endDate" />
-        <label th:for="endTime">End Time:</label>
-        <input type="time" name="endTime" /></div>
-
-        <button type="button" value="Remove End Time" id="endToggleButton">Remove End Time</button>
-
-        <div unless="${logged}">
-            <h5>Sign up for your event:</h5>
-            <br />
-            <label th:for="cName">Username:</label>
-            <input type="text" name="cName" />
-            <br />
-            <label th:for="cPass">Password:</label>
-            <input type="password" name="cPass" />
-            <br />
-            <label th:for="confirm">Confirm Password:</label>
-            <input type="password" name="confirm" />
-            <span th:if="${badpass}">Passwords Don't Match!</span>
-        </div>
-
-        <div id="logStatus" style="display:none" value="${logged}" th:text="${logged}"></div>
-
-        <input type="submit" name="submit" id="submit" />
-
-        <!-- Implement with modal. Javascript also to be implemented
-        <button value="Submit" onclick="submitEvent()">Submit</button> -->
-
     </div>
+    <div class="form-group">
+        <label th:for="eventDesc">Description:</label>
+        <br />
+        <textarea th:field="*{eventDesc}" placeholder="Describe your event here" rows="3"></textarea>
+        <br />
+    </div>
+    <div class="form-row">
+        <div class="form-column">
+            <label th:for="startDate">Starting Date:</label>
+            <input type="date" th:field="*{startDate}" class="form-control" />
+        </div>
+        <div class="form-column">
+            <label th:for="startTime">Starting Time:</label>
+            <input type="time" th:field="*{startTime}" class="form-control" />
+        </div>
+        <br />
+    </div>
+    <div id="endDTDiv" class="form-row">
+        <div class="form-column">
+            <label th:for="endDate">End Date:</label>
+            <input type="date" th:field="*{endDate}" class="form-control" />
+        </div>
+        <div class="form-column">
+            <label th:for="endTime">End Time:</label>
+            <input type="time" th:field="*{endTime}" class="form-control" />
+        </div>
+    </div>
+
+    <div class="form-group"><button type="button" id="endToggleButton" class="btn btn-primary">Remove End Time</button></div>
+
+    <div style="display:none"><input type="checkbox" id="hiddenEnd" th:field="*{hasEnd}" /></div>
+
+    <!-- <div><input type="hidden" th:field="*{hasEnd}" id="hiddenEnd"></div> -->
+    <!-- <div class="btn-group-toggle" data-toggle="buttons">
+        <label class="btn btn-primary active">
+            <input type="checkbox" th:field="*{hasEnd}" id="endToggleButton" value="Remove End Time" />
+        </label>
+    </div> -->
+
+    <div style="display:none" th:unless="${logged}">
+        <div class="form-group">
+            <h5>Sign up for your event:</h5>
+        </div>
+        <div class="form-group">
+            <label th:for="cName">Username:</label>
+            <input type="text" th:field="*{cName}" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label th:for="cPass">Password:</label>
+            <input type="password" th:field="*{cPass}" class="form-control" />
+        </div>
+       <div class="form-group">
+                <label th:for="confirm">Confirm Password:</label>
+                <input type="password" th:field="*{pConfirm}" class="form-control" />
+                <span th:if="${badpass}">Passwords Don't Match!</span>
+        </div>
+    </div>
+
+    <div class="form-group"><button type="submit" name="submit" id="submit" class="btn btn-primary">Submit</button></div>
+
+    <!-- Implement with modal. Javascript also to be implemented
+    <button value="Submit" onclick="submitEvent()">Submit</button> -->
 </form>
 
 <div th:replace="fragments :: script-import"></div>
@@ -58,14 +82,17 @@
     function endToggle() {
     var status = document.getElementById("endDTDiv");
     var button = document.getElementById("endToggleButton");
+    var formval = document.getElementById("hiddenEnd");
     if (status.style.display === "none") {
-        status.style.display = "block";
-        button.value = "Remove End Time";
+        status.style.display = "flex";
+        button.value = "true";
         button.innerHTML = "Remove End Time";
+        formval.value = "true";
     } else {
         status.style.display = "none";
-        button.value = "Add End Time";
+        button.value = "false";
         button.innerHTML = "Add End Time";
+        formval.value = "false";
     }
 }
 </script>

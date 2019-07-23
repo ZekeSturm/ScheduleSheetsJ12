@@ -229,18 +229,8 @@ public class ParserUtil {
     // Quick Implementation - assumes retPos
     public static ErrorPackage parseSingleInt(String parseThis) { return parseSingleInt(parseThis, true); }
 
-    // Parse boolean from a string - TODO - Boolean has this method already. Scrap this neatly when possible
-    public static boolean parseBool (String parseThis) {
-        // Simple test
-        if (parseThis.toLowerCase().equals("true")) return true;
-        // Test for positive integers in string
-        ErrorPackage handler = parseInts(parseThis);
-        if (handler.hasError()) return false;
-        if ((boolean)handler.getAux("singleInt")) if ((int)handler.getAux("intOut") > 0) return true;
-        return false;
-    }
-
     // Output a string from a byte in a specifically formatted way
+    // TODO - May be able to make this private. Check when backend work done
     public static String parseByteToString (byte[] parseThis) {
         if (parseThis == null) return "NULL POINTER";
         // Output string
@@ -253,6 +243,7 @@ public class ParserUtil {
     }
 
     // Reverse the above
+    // TODO - Method may be useless. Consider trimming when backend work is done
     public static byte[] parseByteFromString (String parseThis) {
         // Split string into array to parse
         char[] chArray = parseThis.toCharArray();
@@ -306,5 +297,19 @@ public class ParserUtil {
         if (checkThis != null && !parsedThis.isEmpty())
             return parsedThis.equals(parseByteToString(checkThis));
         return false;
+    }
+
+    public static boolean equalsAny(String in, String[] args) {
+        for (String s : args) {
+            if (in.equals(s)) return true;
+        }
+        return false;
+    }
+
+    public static boolean equalsAll(String in, String[] args) {
+        for (String s : args) {
+            if (!in.equals(s)) return false;
+        }
+        return true;
     }
 }
