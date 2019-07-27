@@ -47,7 +47,7 @@ public class UserController {
             // fetch user ID from session
             int uID = (int) session.getAttribute("userId");
             model.addAttribute("title", "Your profile");
-            return "redirect:user/profile/" + uID;
+            return "redirect:/user/profile/" + uID;
         } else {
             model.addAttribute("title", "Register a new account");
             session = handleLogoff(request, response);

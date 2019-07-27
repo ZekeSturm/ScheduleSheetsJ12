@@ -28,7 +28,7 @@
         </div>
         <br />
     </div>
-    <div id="endDTDiv" class="form-row">
+    <div id="endDTDiv" class="form-row" style="display:none">
         <div class="form-column">
             <label th:for="endDate">End Date:</label>
             <input type="date" th:field="*{endDate}" class="form-control" />
@@ -39,9 +39,9 @@
         </div>
     </div>
 
-    <div class="form-group"><button type="button" id="endToggleButton" class="btn btn-primary">Remove End Time</button></div>
+    <div class="form-group"><button type="button" id="endToggleButton" class="btn btn-primary">Add End Time</button></div>
 
-    <div style="display:none"><input type="checkbox" id="hiddenEnd" th:field="*{hasEnd}" /></div>
+    <div style="display:none"><input type="checkbox" id="hiddenEnd" th:field="*{hasEnd}" value="false" /></div>
 
     <!-- <div><input type="hidden" th:field="*{hasEnd}" id="hiddenEnd"></div> -->
     <!-- <div class="btn-group-toggle" data-toggle="buttons">
@@ -49,8 +49,7 @@
             <input type="checkbox" th:field="*{hasEnd}" id="endToggleButton" value="Remove End Time" />
         </label>
     </div> -->
-
-    <div style="display:none" th:unless="${logged}">
+    <div th:unless="${logged}">
         <div class="form-group">
             <h5>Sign up for your event:</h5>
         </div>
@@ -62,10 +61,10 @@
             <label th:for="cPass">Password:</label>
             <input type="password" th:field="*{cPass}" class="form-control" />
         </div>
-       <div class="form-group">
-                <label th:for="confirm">Confirm Password:</label>
-                <input type="password" th:field="*{pConfirm}" class="form-control" />
-                <span th:if="${badpass}">Passwords Don't Match!</span>
+        <div class="form-group">
+            <label th:for="confirm">Confirm Password:</label>
+            <input type="password" th:field="*{pConfirm}" class="form-control" />
+            <span th:if="${badpass}">Passwords Don't Match!</span>
         </div>
     </div>
 
