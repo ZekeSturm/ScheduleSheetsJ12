@@ -131,7 +131,7 @@ public class EventController {
                 // Disregard missing startTime/Date if startCal is initialized
                 if (s.contains("start") && form.startData()) continue;
                 // Disregard missing endTime/Date if endCal is initialized
-                if (s.contains("end") && (form.endData() || !form.getHasEnd())) continue;
+                if (s.contains("end") && (form.endData() || !form.hasEndBool())) continue;
                 // No valid exception found - add flag to model
                 missingBits = true;
                 s = "no" + s.substring(0, 1).toUpperCase() + s.substring(1);
@@ -174,7 +174,7 @@ public class EventController {
         String desc = form.getEventDesc();
 
         // Create event
-        if (form.getHasEnd()) out = seInit(name, desc, args, form.getStart(), form.getEnd());
+        if (form.hasEndBool()) out = seInit(name, desc, args, form.getStart(), form.getEnd());
         else out = seInit(name, desc, args, form.getStart());
 
 

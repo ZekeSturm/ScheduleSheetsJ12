@@ -5,6 +5,7 @@ import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidDateTimeArrayExcep
 import java.util.ArrayList;
 import java.util.Calendar;
 
+import static java.lang.Math.abs;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 
 // Collection of user-created parsing methods
@@ -67,7 +68,7 @@ public class ParserUtil {
 
         int[] dA = new int[3];
 
-        if (parsed.size() == 3) for (int i : parsed) dA[parsed.indexOf(i)] = i;
+        if (parsed.size() == 3) for (int i : parsed) dA[parsed.indexOf(i)] = abs(i);
         else if (parsed.size() > 3) {
             String eStr = "Date String/Array has too many integers:";
             for (int i : parsed) eStr += " " + i;
@@ -185,15 +186,19 @@ public class ParserUtil {
 
         ErrorPackage out = yesError("PLACEHOLDER"); // Stifle "may not have been initialized" exc. w/ placeholder init
 
+        int negative = 1;
+
         for (int i = 0; i < cArray.length; i++) {
             char c = cArray[i];
-            if ((Character.isDigit(c) || c == '-') && !intFound) {
+            if (Character.isDigit(c) && !intFound) {
                 if (lastInt) buffer *= 10;
                 else if (lastChar) {
                     lastChar = false;
                     if (!retPos) {
-                    sOutput.add(sBuffer);
-                    sBuffer = ""; }}
+                        sOutput.add(sBuffer);
+                        sBuffer = "";
+                    }
+                }
                 buffer += Character.getNumericValue(c);
                 lastInt = true;
                 continue;
@@ -202,12 +207,14 @@ public class ParserUtil {
                 // return index if retPos w/ initial substring
                 out = noError();
                 if (retPos) {
-                    out.addAux("intOut", buffer);
+                    out.addAux("intOut", buffer * negative);
                     out.addAux("lastIndex", i);
                     out.addAux("priorString", sBuffer);
                 }
                 lastInt = false;
                 intFound = true;
+            } else if (c == '-' && !intFound) {
+                negative = -1;
             } else {
                 sBuffer += c;
                 lastChar = true;
@@ -220,7 +227,7 @@ public class ParserUtil {
                 out = noError();
                 out.addAux("lastIndex", cArray.length);
             }
-            out.addAux("intOut", buffer);
+            out.addAux("intOut", buffer * negative);
             out.addAux("stringFrags", sOutput);
             return out;
         }

@@ -9,6 +9,8 @@
 <h3 th:text="${targetevent.eventName}"></h3>
 <h4 th:text="${targetevent.eventDesc}"></h4>
 <hr />
+<!-- put start (and maybe end) date/time here -->
+<hr />
 <ul>
     <li th:each="participant : ${participants}">
         <span th:text="${participant.username}"></span>

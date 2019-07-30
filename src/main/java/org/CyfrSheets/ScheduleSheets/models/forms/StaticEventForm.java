@@ -23,7 +23,7 @@ public class StaticEventForm {
 
     private boolean startTimeInitialized = false; // Start Time Calendar initialized and populated
 
-    private boolean hasEnd = false;
+    private String hasEnd = "false";
 
     private String endDate = "";
 
@@ -32,8 +32,6 @@ public class StaticEventForm {
     private Calendar endCal = null;
 
     private boolean endTimeInitialized = false; // End Time Calendar initialized and populated
-
-    private boolean logged = false; // User creator y/n // t/f
 
     // Temporary User creator name/password
     private String cName = "";
@@ -51,7 +49,8 @@ public class StaticEventForm {
     public String getStartDate() { return startDate; }
     public String getStartTime() { return startTime; }
 
-    public boolean getHasEnd()      { return hasEnd; }
+    public String getHasEnd()      { return hasEnd; }
+    public boolean hasEndBool()    { return Boolean.getBoolean(hasEnd); }
 
     public String getEndDate()   { return endDate; }
     public String getEndTime()   { return endTime; }
@@ -65,7 +64,7 @@ public class StaticEventForm {
     public void setCPass(String cPass)         { this.cPass = cPass; }
     public void setPConfirm(String pConfirm)   { this.pConfirm = pConfirm; }
 
-    public void setEnd(boolean hasEnd)     { this.hasEnd = hasEnd; }
+    public void setHasEnd(String hasEnd)   { this.hasEnd = hasEnd; }
 
     public void setStartDate(String startDate) {
         this.startDate = startDate;
@@ -91,6 +90,8 @@ public class StaticEventForm {
 
     // Will return a map of fields indicating which ones are and are not missing
     public ArrayList<String> whatsMissing() {
+        startConvert();
+        endConvert();
         ArrayList<String> out = new ArrayList<>();
         for (Field f : this.getClass().getDeclaredFields()) {
             boolean present;
@@ -122,7 +123,6 @@ public class StaticEventForm {
     public boolean passMatch() { return cPass.equals(pConfirm); }
 
     public StaticEventForm(boolean logged) {
-        this.logged = logged;
         if (logged) {
             cName = "";
             cPass = "";
@@ -135,6 +135,7 @@ public class StaticEventForm {
     // Below methods convert string inputs to calendar outputs automatically once data is collected
     private void startConvert() {
         if (startInc()) return; // Terminate method if data is missing
+        if (startTimeInitialized) return; // Terminate method if calendar object is initialized
 
         try {
             int[] sDA = parseDate(startDate);
@@ -154,6 +155,7 @@ public class StaticEventForm {
 
     private void endConvert() {
         if (endInc()) return; // Terminate method if data is missing
+        if (endTimeInitialized) return; // Terminate method if calendar object is initialized
 
         try {
             int[] eDA = parseDate(endDate);
@@ -172,8 +174,8 @@ public class StaticEventForm {
     }
 
     // Returns false if all necessary data is present
-    private boolean startInc() { return !(startDate.equals("noData") || startTime.equals("noData")); }
+    private boolean startInc() { return (startDate.equals("") || startTime.equals("")); }
 
-    private boolean endInc()   { return !(endDate.equals("noData") || endTime.equals("noData")); }
+    private boolean endInc()   { return (endDate.equals("") || endTime.equals("")); }
 
 }
