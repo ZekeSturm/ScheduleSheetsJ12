@@ -274,7 +274,9 @@ public class EventController {
 
         BaseEvent targetEvent = (BaseEvent)handler.getAux("event");
 
-        model.addAttribute("targetevent", targetEvent);
+        model.addAttribute("targetEvent", targetEvent);
+        model.addAttribute("eventTime", targetEvent.getTime());
+        model.addAttribute("eventType", targetEvent.getType());
         model.addAttribute("participants", targetEvent.getParticipants());
 
         return "event/static-event";

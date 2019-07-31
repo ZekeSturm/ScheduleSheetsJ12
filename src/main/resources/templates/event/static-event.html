@@ -6,19 +6,34 @@
 <div th:replace="fragments :: page-header"></div>
 
 
-<h3 th:text="${targetevent.eventName}"></h3>
-<h4 th:text="${targetevent.eventDesc}"></h4>
+<h3 th:text="${targetEvent.eventName}"></h3>
+<h4 th:text="${targetEvent.eventDesc}"></h4>
 <hr />
-<!-- put start (and maybe end) date/time here -->
+<div style="width:650px">
+    <h5>
+        <span th:text="${eventTime.printStartTime()}"></span>
+        <span th:style="${eventType.startOnly() || !eventType.isOneDay()} ? 'display:none'">
+            <span th:text="${' to ' + eventTime.printEndTimeNoDate()}"></span>
+        </span>
+        <div th:style="${eventType.isOneDay()} ? 'display:none' : 'align:center'">- TO -</div>
+        <div th:style="${eventType.isOneDay()} ? 'display:none'">
+            <span th:text="${eventTime.printEndTime()}">Test</span>
+        </div>
+    </h5>
+</div>
 <hr />
 <ul>
-    <li th:each="participant : ${participants}">
-        <span th:text="${participant.username}"></span>
+    <li th:each="participant : ${participants}" th:with="uid=${participant.getUID()}">
+        <a th:if="${participant.registered()}" th:href="@{'/user/profile/' + ${uid}}" th:text="${participant.username}"></a>
+        <span th:text="${participant.registered()} ? '' : ${participant.username}"></span>
     </li>
 </ul>
 
+<!-- TODO - change below message & link text (or make a new thing and hide this one)
+     for registered users who are not part of the event -->
 <p>Send this link to people you'd like to invite:</p>
-<p th:text="@{__${#httpServletRequest.requestURL}__/join}"></p>
+<a th:href="@{__${#httpServletRequest.requestURL}__/join}">
+    <p th:text="@{__${#httpServletRequest.requestURL}__/join}"></p></a>
 
 </body>
 </html>

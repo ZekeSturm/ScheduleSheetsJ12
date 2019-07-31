@@ -47,7 +47,7 @@ public class StaticEvent extends BaseEvent {
             out.addTime(new EventTime(startTime));
         }
 
-        if (hasEnd) out.type = SOS;
+        if (!hasEnd) out.type = SOS;
         else {
             if (out.time.multiDay()) out.type = MDS;
             else out.type = SDS;

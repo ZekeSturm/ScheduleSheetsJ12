@@ -6,6 +6,7 @@ import java.security.SecureRandom;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ClassChecker.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
 
+// TODO - Delete this file once majority testing is done
 public class ScratchFile {
 
     /** public static void main(String[] args) {

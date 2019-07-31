@@ -52,6 +52,7 @@ public abstract class Participant {
 
     public String getUsername() { return username; }
     public int getID() { return id; }; // TODO - Make protected if it won't break things
+    public int getUID() { return -2147483648; } // Futz the check - must be here for use from Participant where necessary
 
     // Comparator abstract: Body to be split between TempUser and RegUser below
     abstract public boolean equals(Participant p);

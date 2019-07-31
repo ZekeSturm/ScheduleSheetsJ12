@@ -4,12 +4,141 @@ import org.CyfrSheets.ScheduleSheets.models.exceptions.InvalidDateTimeArrayExcep
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.stream.IntStream;
 
 import static java.lang.Math.abs;
+import static java.util.Calendar.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage.*;
 
 // Collection of user-created parsing methods
 public class ParserUtil {
+
+    // Find first instance of a substring within a larger string and replace it with a different substring.
+    // Return input if substring is not found.
+    public static String findAndReplace (String input, String find, String replace) {
+        if (!input.contains(find)) return input;
+
+        int finalIndex = input.indexOf(find) + find.length();
+        if (finalIndex == input.length() - 1) {
+            return input.replace(find, replace);
+        } else {
+            finalIndex += 1;
+            String firstHalf = input.substring(0, finalIndex);
+            String secondHalf = input.substring(finalIndex);
+            return firstHalf.replace(find, replace) + secondHalf;
+        }
+    }
+
+    // Take date/time values and offsets for each - calculate overflow.
+    // Values should conform to Calendar (e.g. MONTH, HOUR one-is-zero-start, DATE_OF_MONTH correspond directly, etc)
+    // Both arrays as follows (using int constant names):
+    // [YEAR, MONTH, DAY_OF, HOUR, MIN, AM_PM]
+    // AM_PM utilizes the AM and PM values from Calendar, or -1 if the HOUR field is in 24HR format.
+    // Offset should not include/does not utilize AM_PM.
+    // NOTE - Currently this method is designed purely for use with time zone offsets and overflows. If the scope of its
+    // use expands beyond that, this method will become insufficient and further modifications will have to be made to
+    // account for greater shifts in values (multiple year/month/day offsets, for instance).
+    public static int[] dateTimeOffsetOverflow(int[] initial, int[] offsets) {
+        int YEAR = 0;
+        int MONTH = 1;
+        int DAY_OF = 2;
+        int HOUR = 3;
+        int MIN = 4;
+        int AM_PM = 5;
+
+        // Handle minute offsets and any subsequent hour over/underflow
+        if (offsets[MIN] != 0) {
+            initial[MIN] += offsets[MIN];
+            if (initial[MIN] > 59) {
+                initial[MIN] -= 60;
+                initial[HOUR]++;
+            }
+            if (initial[MIN] < 0) {
+                initial[MIN] += 60;
+                initial[HOUR]--;
+            }
+        }
+
+        // Handle hour offsets and any subsequent date over/underflow
+        if (offsets[HOUR] != 0) {
+            initial[HOUR] += offsets[HOUR];
+            if (initial[AM_PM] == -1) {
+                if (initial[HOUR] < 0) {
+                    initial[HOUR] += 24;
+                    initial[DAY_OF]--;
+                }
+                if (initial[HOUR] > 23) {
+                    initial[HOUR] -= 24;
+                    initial[DAY_OF]++;
+                }
+            } else {
+                boolean am; // Is it AM or PM? (true/false respectively - scope limited, must update overall later)
+                if (initial[AM_PM] == AM) am = true;
+                else am = false;
+                if (initial[HOUR] < 1) {
+                    initial[HOUR] += 12;
+                    am = !am;
+                    if (!am) initial[DAY_OF]--;
+                }
+                if (initial[HOUR] > 12) {
+                    initial[HOUR] -= 12;
+                    am = !am;
+                    if (am) initial[DAY_OF]++;
+                }
+                // update stored AM/PM check (it is now later)
+                if (am) initial[AM_PM] = AM;
+                else initial[AM_PM] = PM;
+            }
+        }
+
+        int[] thirties = {1, 3, 5, 8, 10}; // Month ints for months w/ 30 days (or less)
+
+        int iMLambda = initial[MONTH]; // "effectively final" copy for lambda expression
+
+        // Account for leap years and added days in over/underflow
+        int febVal = 28;
+        if (initial[YEAR] % 4 == 0 && (initial[YEAR] % 100 != 0 || initial[YEAR] % 400 == 0)) febVal = 29;
+
+        // Handle month over/underflow
+        if (initial[DAY_OF] > febVal) {
+            if (initial[MONTH] == 1 || initial[DAY_OF] > 30) {
+                if (IntStream.of(thirties).anyMatch(x -> x == iMLambda) || initial[DAY_OF] > 31) {
+                    initial[MONTH]++;
+                    if (initial[DAY_OF] > 31) initial[DAY_OF] -= 31;
+                }
+                if (initial[DAY_OF] > 30) initial[DAY_OF] -= 30;
+            }
+            if (initial[DAY_OF] > febVal) initial[DAY_OF] -= febVal;
+            // May need to add "already adjusted" checks above at some point, but for current use this should work
+        } else if (initial[DAY_OF] < 1) {
+            initial[MONTH]--;
+            switch (initial[MONTH]) {
+                case 1: // February
+                    initial[DAY_OF] += febVal;
+                    break;
+                case 3:
+                case 5:
+                case 8:
+                case 10: // months with 30 days
+                    initial[DAY_OF] += 30;
+                    break;
+                default: // The rest (months with 31 days)
+                    initial[DAY_OF] += 31;
+            }
+        }
+
+        // Handle year over/underflow
+        if (initial[MONTH] > 11) {
+            initial[YEAR]++;
+            initial[MONTH] -= 12;
+        }
+        if (initial[MONTH] < 0) {
+            initial[YEAR]--;
+            initial[MONTH] += 12;
+        }
+
+        return initial;
+    }
 
     // Parse string directly to Calendar
     public static Calendar parseCalendarDateTime (String dateTimeStr) throws InvalidDateTimeArrayException {
@@ -44,7 +173,7 @@ public class ParserUtil {
             throw new InvalidDateTimeArrayException(eStr); }
         else {
             String eStr = "DateTime String/Array does not have enough integers:";
-            if (parsed.size() <= 0) eStr += " NO INTEGERS FOUND" + dateTimeStr;
+            if (parsed.size() <= 0) eStr += " NO INTEGERS FOUND \"" + dateTimeStr + "\"";
             else for (int i : parsed) eStr += " " + i;
             throw new InvalidDateTimeArrayException(eStr); }
 
@@ -85,7 +214,7 @@ public class ParserUtil {
         return dA;
     }
 
-    // Parse string to int array ready to feed into a Calendar.Builder (Time Only)
+    // Parse string to int array ready to feed into a Calendar.Builder (Time Only - 24HR format)
     public static int[] parseTime(String timeStr) throws InvalidDateTimeArrayException {
 
         ErrorPackage parsedEP = parseInts(timeStr);
@@ -113,6 +242,96 @@ public class ParserUtil {
             throw new InvalidDateTimeArrayException(eStr); }
 
         return tA;
+    }
+
+    // Return a neat date/time string from a calendar. Specify which segments you want/need & time format
+    public static String neatCalendarString (Calendar dateTime, boolean date, boolean time, boolean twentyFour) {
+        if (!(date || time)) return "";
+
+        String out = "";
+
+        if (date) { // Parse out date info
+            String tzId = dateTime.getTimeZone().getID().toLowerCase();
+            boolean amTZ = (tzId.contains("america/") || tzId.contains("us/")); // American time zone? - for formatting
+            int dateOf = dateTime.get(DAY_OF_MONTH);
+            String month = null;
+            int year = dateTime.get(YEAR);
+            switch (dateTime.get(MONTH)) {
+                case 0:
+                    month = "January";
+                case 1:
+                    month = "February";
+                case 2:
+                    month = "March";
+                case 3:
+                    month = "April";
+                case 4:
+                    month = "May";
+                case 5:
+                    month = "June";
+                case 6:
+                    month = "July";
+                case 7:
+                    month = "August";
+                case 8:
+                    month = "September";
+                case 9:
+                    month = "October";
+                case 10:
+                    month = "November";
+                case 11:
+                    month = "December";
+            }
+            if (month == null) month = "MONTH_FIELD_ERROR";
+
+            if (amTZ) {
+                out += month + " " + dateOf + ", " + year;
+            } else {
+                out += dateOf + " " + month + ", " + year;
+            }
+        }
+
+        if (time) { // Parse out time info
+            if (date) out += " -- ";
+
+            String minute = dateTime.get(MINUTE) + "";
+            if (minute.length() == 1) minute = "0" + minute;
+
+            int hourType;
+            int hour;
+            if (twentyFour) hourType = HOUR_OF_DAY;
+            else hourType = HOUR;
+            hour = dateTime.get(hourType);
+            if (!twentyFour) hour++;
+
+            out += hour + ":" + minute;
+
+            if (!twentyFour) {
+                switch (dateTime.get(AM_PM)) {
+                    case AM:
+                        out += " AM";
+                        break;
+                    case PM:
+                        out += " PM";
+                }
+            }
+        }
+        return out;
+    }
+
+    // Shorthand of parent - choose either date or time, defaults to 12 hour if latter
+    public static String neatCalendarString (Calendar dateTime, boolean date, boolean time) {
+        return neatCalendarString(dateTime, date, time, false);
+    }
+
+    // Shorthand of parent - defaults to whole string, allows hour formatting
+    public static String neatCalendarString (Calendar dateTime, boolean twentyFour) {
+        return neatCalendarString(dateTime, true, true, twentyFour);
+    }
+
+    // Shorthand of parent - defaults to whole string & 12 hour
+    public static String neatCalendarString (Calendar dateTime) {
+        return neatCalendarString(dateTime, false);
     }
 
     // Parse all ints out of string - Return w/ leftover non-int string fragments if stringReturn is true

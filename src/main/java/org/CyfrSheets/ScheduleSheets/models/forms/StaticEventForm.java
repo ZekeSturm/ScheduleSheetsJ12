@@ -50,7 +50,7 @@ public class StaticEventForm {
     public String getStartTime() { return startTime; }
 
     public String getHasEnd()      { return hasEnd; }
-    public boolean hasEndBool()    { return Boolean.getBoolean(hasEnd); }
+    public boolean hasEndBool()    { return hasEnd.toLowerCase().equals("true"); }
 
     public String getEndDate()   { return endDate; }
     public String getEndTime()   { return endTime; }

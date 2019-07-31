@@ -8,7 +8,8 @@ import java.util.Calendar;
 
 import static org.CyfrSheets.ScheduleSheets.models.utilities.ParserUtil.*;
 
-/** Time Slot for passing along individual user time segments. [Future Me - Consider implementing Attendance Status field] */
+// Time Slot for passing along individual user time segments.
+// [Future Me - Consider implementing Attendance Status field]
 public class TimeSlot {
 
     private Calendar startTime;
