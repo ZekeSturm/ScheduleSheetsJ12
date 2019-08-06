@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.Calendar.*;
 import static org.CyfrSheets.ScheduleSheets.models.utilities.EventType.*;
@@ -144,10 +146,21 @@ public class EventTime {
             }
         }
 
+        // Fetch string output
+        String output = neatCalendarString(timeOut, true, true, twentyFour);
+
+        // Setup Regex
+        Pattern dtParti = Pattern.compile("--");
+        Matcher outMatch = dtParti.matcher(output);
+
+        // Format for cleanliness
         if (parentType.isOneDay() && !parentType.startOnly()) {
-            return neatCalendarString(timeOut, true, false) + " from " + neatCalendarString(timeOut, false, true);
+            output = outMatch.replaceAll("from");
+        } else {
+            output = outMatch.replaceAll("at");
         }
-        return neatCalendarString(timeOut, true, false) + " at " + neatCalendarString(timeOut, false, true);
+
+        return output;
     }
 
     // Same as above, used by everything EXCEPT printTimeOnly's implementation

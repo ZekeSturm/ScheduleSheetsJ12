@@ -29,6 +29,7 @@ public class ScratchFile {
         System.out.println(a + " | " + b);
     } */
 
+    /**
     public static void main(String[] args) {
         byte[] testIn = new byte[32];
 
@@ -55,5 +56,12 @@ public class ScratchFile {
             System.out.println(testIn);
             System.out.println(testOut);
         } catch (NoSuchAlgorithmException e) { }
+    } */
+
+    public static void main(String[] args) {
+        for (String s: args) {
+            InputSanit.sanitize(s);
+            System.out.println();
+        }
     }
 }

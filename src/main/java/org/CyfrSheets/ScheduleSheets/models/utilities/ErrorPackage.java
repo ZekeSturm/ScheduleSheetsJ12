@@ -37,7 +37,7 @@ public class ErrorPackage {
 
     public String setMessage(String msg) {
         if (dataMap.containsKey("error")) {
-            if (!(Boolean)dataMap.get("error")) {
+            if ((Boolean)dataMap.get("error")) {
                 auxMsgNum += 1;
                 dataMap.put("auxMsg" + auxMsgNum, msg);
                 return "Error message already present! Message saved as Aux " + auxMsgNum +

@@ -8,6 +8,7 @@ import org.CyfrSheets.ScheduleSheets.models.users.Participant;
 import org.CyfrSheets.ScheduleSheets.models.users.RegUser;
 import org.CyfrSheets.ScheduleSheets.models.users.TempUser;
 import org.CyfrSheets.ScheduleSheets.models.utilities.ErrorPackage;
+import org.apache.commons.text.StringEscapeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -171,7 +172,7 @@ public class EventController {
 
         // Pull event name/desc
         String name = form.getEventName();
-        String desc = form.getEventDesc();
+        String desc = StringEscapeUtils.escapeHtml4(form.getEventDesc());
 
         // Create event
         if (form.hasEndBool()) out = seInit(name, desc, args, form.getStart(), form.getEnd());

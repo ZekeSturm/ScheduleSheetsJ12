@@ -32,6 +32,7 @@ dependencies {
 		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
 		exclude group: 'junit', module: 'junit'
 	}
+	compile 'org.apache.commons:commons-text:1.7'
 }
 
 test {
